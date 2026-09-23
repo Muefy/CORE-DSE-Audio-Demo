@@ -1,4 +1,4 @@
-/* 定义 CORE-DSE 学术展示页的响应式布局，并规范语谱图坐标与播放器位置。 */
+/* 定义 CORE-DSE 学术展示页的响应式布局，并区分 Easy、Hard 试听与指标展开状态。 */
 :root {
   color: #1d1d1f;
   background: #ffffff;
@@ -223,6 +223,8 @@ h1 span { color: inherit; }
 .dialog-content > .text-button { margin-top: 18px; }
 
 .demo-section { padding-bottom: 58px; }
+.scene-group + .scene-group { margin-top: 42px; padding-top: 30px; border-top: 1px solid var(--line); }
+.scene-group-title { margin: 0 0 15px; font-size: 1.35rem; font-weight: 700; }
 .scene-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .scene-choice {
   display: flex;
@@ -247,8 +249,10 @@ h1 span { color: inherit; }
 .scene-detail { margin-top: 18px; }
 .scene-message { margin: 0; padding: 26px; border: 1px solid var(--line); color: var(--muted); }
 .scene-message--error, .asset-error { color: #9d2c2c; background: #fff6f6; }
-.scene-detail-heading { margin-bottom: 14px; }
-.scene-detail-heading h3 { margin: 3px 0 0; font-size: 1.27rem; font-weight: 700; }
+.scene-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.scene-detail-heading h4 { margin: 0; font-size: 1.27rem; font-weight: 700; }
+.metric-toggle { flex: 0 0 auto; padding: 8px 10px; border: 1px solid #bbcad8; border-radius: 3px; color: var(--accent); background: #fff; font-size: 0.86rem; font-weight: 650; cursor: pointer; }
+.metric-toggle:hover, .metric-toggle:focus-visible { border-color: var(--accent); background: #f4f8fc; }
 .acoustic-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -265,7 +269,7 @@ h1 span { color: inherit; }
 .audio-track-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .audio-track-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
 .audio-track-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 42px; }
-.audio-track-heading h4 { margin: 0 0 11px; font-size: 1rem; font-weight: 700; line-height: 1.35; }
+.audio-track-heading h5 { margin: 0 0 11px; font-size: 1rem; font-weight: 700; line-height: 1.35; }
 .reference-badge { color: var(--muted); font-size: 0.78rem; font-weight: 650; white-space: nowrap; }
 .audio-track-card audio { display: block; width: 100%; height: 54px; margin-top: 14px; }
 .asset-error { margin: 0 0 13px; padding: 10px; border: 1px solid #e8bbbb; font-size: 0.85rem; }
@@ -313,9 +317,11 @@ h1 span { color: inherit; }
   .dialog-topbar, .dialog-content { padding: 16px; }
   .paper-figure--detail { min-height: 340px; padding: 10px; }
   .module-card { padding: 10px; }
+  .scene-group + .scene-group { margin-top: 32px; padding-top: 24px; }
   .scene-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scene-choice { min-height: 72px; padding: 10px; }
   .scene-choice span { font-size: 0.74rem; }
+  .scene-detail-heading { align-items: flex-start; flex-direction: column; }
   .acoustic-grid { padding: 5px 12px; }
   .acoustic-grid > div { gap: 7px; }
   .acoustic-grid dt { flex-basis: 150px; }

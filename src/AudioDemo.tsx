@@ -1,4 +1,4 @@
-// 展示六个场景的目标语音试听、规范坐标的语谱图、场景信息和质量指标。
+// 将 Easy 与 Hard 试听分区展示，并按需展开非侵入式指标。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -56,10 +56,22 @@ interface Track {
 
 interface TrackCardProps {
   track: Track;
+  showNonIntrusive: boolean;
   savedPosition: (key: string) => number;
   rememberPosition: (key: string, seconds: number) => void;
   onPlay: (audio: HTMLAudioElement) => void;
   onPause: (audio: HTMLAudioElement) => void;
+}
+
+interface SceneGroupProps {
+  split: Scene["split"];
+  scenes: Partial<Record<SceneId, Scene>>;
+  sceneErrors: Partial<Record<SceneId, string>>;
+  savedPosition: (key: string) => number;
+  rememberPosition: (key: string, seconds: number) => void;
+  onPlay: (audio: HTMLAudioElement) => void;
+  onPause: (audio: HTMLAudioElement) => void;
+  onSceneChange: () => void;
 }
 
 const metricNames: MetricName[] = ["PESQ", "ESTOI", "SISDR", "OVRL", "SIG", "BAK", "P808_MOS"];
@@ -79,7 +91,7 @@ function parseScene(raw: unknown, expectedId: SceneId): Scene {
   const path = (value: unknown) => typeof value === "string" && value.length > 0 && !value.startsWith("/") && !value.includes("..");
 
   if (
-    scene?.id !== expectedId || !["Easy", "Hard"].includes(scene.split) ||
+    scene?.id !== expectedId || scene.split?.toLowerCase() !== expectedId.split("-")[0] ||
     !scene.sampleId || !finite(scene.mixtureSpeakerCount) ||
     !path(scene.mixtureAudio) || !path(scene.mixtureSpectrogram) || !path(scene.enhancedMetricsFile) ||
     !path(target?.cleanAudio) || !path(target?.cleanSpectrogram) ||
@@ -188,7 +200,7 @@ function AcousticConditions({ scene }: { scene: Scene }) {
 }
 
 /** 绘制当前音轨的音频控件、可跳转语谱图与可用指标。 */
-function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
+function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [position, setPosition] = useState(() => savedPosition(track.key));
   const [audioError, setAudioError] = useState(false);
@@ -212,7 +224,7 @@ function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: 
   return (
     <article className="audio-track-card">
       <div className="audio-track-heading">
-        <h4>{track.label}</h4>
+        <h5>{track.label}</h5>
         {track.kind === "clean" && <span className="reference-badge">Reference</span>}
       </div>
 
@@ -279,44 +291,27 @@ function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: 
             <div><dt>ESTOI</dt><dd>{(track.metrics.ESTOI * 100).toFixed(1)}%</dd></div>
             <div><dt>SI-SDR</dt><dd>{track.metrics.SISDR.toFixed(3)} dB</dd></div>
           </dl>
-          <dl className="metric-grid metric-grid--secondary">
-            <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(3)}</dd></div>
-            <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(3)}</dd></div>
-            <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(3)}</dd></div>
-            <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(3)}</dd></div>
-          </dl>
+          {showNonIntrusive && (
+            <dl className="metric-grid metric-grid--secondary">
+              <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(3)}</dd></div>
+              <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(3)}</dd></div>
+              <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(3)}</dd></div>
+              <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(3)}</dd></div>
+            </dl>
+          )}
         </div>
       )}
     </article>
   );
 }
 
-/** 加载场景元数据与当前场景指标，管理互斥播放和场景切换。 */
-export default function AudioDemo() {
-  const [selectedId, setSelectedId] = useState<SceneId>("easy-01");
-  const [scenes, setScenes] = useState<Partial<Record<SceneId, Scene>>>({});
-  const [sceneErrors, setSceneErrors] = useState<Partial<Record<SceneId, string>>>({});
+/** 独立管理一个难度区域的场景切换、指标加载与展开状态。 */
+function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPosition, onPlay, onPause, onSceneChange }: SceneGroupProps) {
+  const [selectedId, setSelectedId] = useState<SceneId>(split === "Easy" ? "easy-01" : "hard-01");
   const [metricState, setMetricState] = useState<{ sceneId: SceneId; rows?: Record<string, MetricRow>; error?: string } | null>(null);
-  const activeAudio = useRef<HTMLAudioElement | null>(null);
-  const positions = useRef(new Map<string, number>());
+  const [showNonIntrusive, setShowNonIntrusive] = useState(false);
+  const options = sceneOptions.filter((option) => option.id.startsWith(`${split.toLowerCase()}-`));
   const scene = scenes[selectedId];
-
-  useEffect(() => {
-    const controller = new AbortController();
-    for (const option of sceneOptions) {
-      fetch(sceneAssetUrl(option.id, "scene.json"), { signal: controller.signal })
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`Scene metadata could not be loaded (${response.status}).`);
-          const payload = parseScene(await response.json(), option.id);
-          setScenes((current) => ({ ...current, [option.id]: payload }));
-        })
-        .catch((error: unknown) => {
-          if (controller.signal.aborted) return;
-          setSceneErrors((current) => ({ ...current, [option.id]: error instanceof Error ? error.message : "Scene metadata is unavailable." }));
-        });
-    }
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     if (!scene) return;
@@ -335,22 +330,11 @@ export default function AudioDemo() {
     return () => controller.abort();
   }, [scene, selectedId]);
 
-  /** 暂停上一音轨，确保同一时刻仅播放一条音频。 */
-  function handlePlay(audio: HTMLAudioElement) {
-    if (activeAudio.current && activeAudio.current !== audio) activeAudio.current.pause();
-    activeAudio.current = audio;
-  }
-
-  /** 清除已暂停音轨的活动标记。 */
-  function handlePause(audio: HTMLAudioElement) {
-    if (activeAudio.current === audio) activeAudio.current = null;
-  }
-
-  /** 切换场景前停止当前音轨播放。 */
+  /** 切换本区域场景时暂停播放，并恢复指标的默认折叠状态。 */
   function selectScene(id: SceneId) {
     if (id === selectedId) return;
-    activeAudio.current?.pause();
-    activeAudio.current = null;
+    onSceneChange();
+    setShowNonIntrusive(false);
     setSelectedId(id);
   }
 
@@ -368,9 +352,10 @@ export default function AudioDemo() {
   }
 
   return (
-    <div className="audio-demo">
-      <div className="scene-picker" role="group" aria-label="Choose an audio scene">
-        {sceneOptions.map((option) => {
+    <section className="scene-group" aria-labelledby={`${split.toLowerCase()}-scenes-title`}>
+      <h3 className="scene-group-title" id={`${split.toLowerCase()}-scenes-title`}>{split}</h3>
+      <div className="scene-picker" role="group" aria-label={`Choose a ${split.toLowerCase()} audio scene`}>
+        {options.map((option) => {
           const item = scenes[option.id];
           return (
             <button
@@ -395,24 +380,93 @@ export default function AudioDemo() {
         ) : (
           <>
             <div className="scene-detail-heading">
-              <h3>{sceneOptions.find((option) => option.id === selectedId)?.label}</h3>
+              <h4>{options.find((option) => option.id === selectedId)?.label}</h4>
+              <button
+                type="button"
+                className="metric-toggle"
+                aria-expanded={showNonIntrusive}
+                aria-controls={`${split.toLowerCase()}-track-grid`}
+                onClick={() => setShowNonIntrusive((current) => !current)}
+              >
+                {showNonIntrusive ? "Hide non-intrusive metrics" : "Show non-intrusive metrics"}
+              </button>
             </div>
             <AcousticConditions scene={scene} />
-            <div className="audio-track-grid">
+            <div className="audio-track-grid" id={`${split.toLowerCase()}-track-grid`}>
               {tracks.map((track) => (
                 <TrackCard
                   key={track.key}
                   track={track}
-                  savedPosition={(key) => positions.current.get(key) ?? 0}
-                  rememberPosition={(key, seconds) => positions.current.set(key, seconds)}
-                  onPlay={handlePlay}
-                  onPause={handlePause}
+                  showNonIntrusive={showNonIntrusive}
+                  savedPosition={savedPosition}
+                  rememberPosition={rememberPosition}
+                  onPlay={onPlay}
+                  onPause={onPause}
                 />
               ))}
             </div>
           </>
         )}
       </div>
+    </section>
+  );
+}
+
+/** 加载场景元数据，并在两个试听区域之间共享互斥播放与进度。 */
+export default function AudioDemo() {
+  const [scenes, setScenes] = useState<Partial<Record<SceneId, Scene>>>({});
+  const [sceneErrors, setSceneErrors] = useState<Partial<Record<SceneId, string>>>({});
+  const activeAudio = useRef<HTMLAudioElement | null>(null);
+  const positions = useRef(new Map<string, number>());
+
+  useEffect(() => {
+    const controller = new AbortController();
+    for (const option of sceneOptions) {
+      fetch(sceneAssetUrl(option.id, "scene.json"), { signal: controller.signal })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`Scene metadata could not be loaded (${response.status}).`);
+          const payload = parseScene(await response.json(), option.id);
+          setScenes((current) => ({ ...current, [option.id]: payload }));
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          setSceneErrors((current) => ({ ...current, [option.id]: error instanceof Error ? error.message : "Scene metadata is unavailable." }));
+        });
+    }
+    return () => controller.abort();
+  }, []);
+
+  /** 暂停上一音轨，确保两个区域之间同一时刻仅播放一条音频。 */
+  function handlePlay(audio: HTMLAudioElement) {
+    if (activeAudio.current && activeAudio.current !== audio) activeAudio.current.pause();
+    activeAudio.current = audio;
+  }
+
+  /** 清除已暂停音轨的活动标记。 */
+  function handlePause(audio: HTMLAudioElement) {
+    if (activeAudio.current === audio) activeAudio.current = null;
+  }
+
+  /** 切换任一场景时停止正在播放的音轨。 */
+  function stopActiveAudio() {
+    activeAudio.current?.pause();
+    activeAudio.current = null;
+  }
+
+  /** 获取音轨上次保存的播放位置。 */
+  function savedPosition(key: string) {
+    return positions.current.get(key) ?? 0;
+  }
+
+  /** 保存音轨当前的播放位置。 */
+  function rememberPosition(key: string, seconds: number) {
+    positions.current.set(key, seconds);
+  }
+
+  return (
+    <div className="audio-demo">
+      <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} />
+      <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} />
     </div>
   );
 }
