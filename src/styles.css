@@ -1,4 +1,4 @@
-/* 定义 CORE-DSE 学术展示页、试听卡片及语谱图的浅色响应式布局。 */
+/* 定义 CORE-DSE 学术展示页的浅色响应式布局，并限制 LGM 方法图的展示宽度。 */
 :root {
   color: #1d1d1f;
   background: #ffffff;
@@ -219,6 +219,7 @@ h1 span { color: inherit; }
 .module-grid { display: grid; gap: 16px; }
 .module-card { display: grid; margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
 .module-card img { width: 100%; object-fit: contain; background: #fff; }
+.module-card--lgm img { width: min(100%, 480px); justify-self: center; }
 .dialog-content > .text-button { margin-top: 18px; }
 
 .demo-section { padding-bottom: 58px; }

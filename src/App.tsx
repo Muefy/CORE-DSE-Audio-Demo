@@ -1,4 +1,4 @@
-// 构建论文首页、逐层浏览的方法图和按场景切换的试听区。
+// 构建论文首页、逐层浏览的方法图和按场景切换的试听区；方法弹窗使用精简标题。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
 
@@ -49,7 +49,7 @@ function MethodDialog({ panel, onClose, onPanelChange }: MethodDialogProps) {
           <div>
             <span className="section-kicker">Method detail</span>
             <h2 id="method-dialog-title">
-              {panel === "tfgca-lgm" ? "TF-GCA and Local Gated Mixer" : "Inside the Coarse Extractor"}
+              {panel === "tfgca-lgm" ? "TF-GCA and LGM" : "Inside the Coarse Extractor"}
             </h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close method detail">
@@ -72,7 +72,7 @@ function MethodDialog({ panel, onClose, onPanelChange }: MethodDialogProps) {
               <figure className="module-card" aria-label="Time-Frequency Gated Cross-Attention">
                 <img src="./assets/paper/figure3-tfgca.png" alt="Architecture of Time-Frequency Gated Cross-Attention" />
               </figure>
-              <figure className="module-card" aria-label="Local Gated Mixer">
+              <figure className="module-card module-card--lgm" aria-label="Local Gated Mixer">
                 <img src="./assets/paper/figure3-lgm.png" alt="Architecture of the Local Gated Mixer" />
               </figure>
             </div>
