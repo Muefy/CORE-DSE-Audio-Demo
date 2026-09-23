@@ -1,0 +1,46 @@
+{
+  "id": "hard-03",
+  "split": "Hard",
+  "sampleId": "0245",
+  "mixtureSpeakerCount": 5,
+  "mixtureAudio": "noisy/0245_mic0.wav",
+  "mixtureSpectrogram": "noisy/0245_mic0_spectrogram.png",
+  "target": {
+    "azimuthDeg": 30.7777,
+    "elevationDeg": -80.9839,
+    "distanceM": 0.7944,
+    "cleanAudio": "clean/0245.wav",
+    "cleanSpectrogram": "clean/0245_spectrogram.png"
+  },
+  "acousticConditions": {
+    "noise": {
+      "azimuthDeg": 38.6465,
+      "elevationDeg": 39.2773,
+      "distanceM": 0.539
+    },
+    "room": {
+      "shape": "rect",
+      "dimensionsM": {
+        "x": 4.3124,
+        "y": 3.0419,
+        "z": 3.3396
+      },
+      "t60S": 0.1388
+    }
+  },
+  "enhancedMetricsFile": "enhanced/evaluation_metrics.csv",
+  "experiments": [
+    {
+      "id": "TF",
+      "label": "TF-GridNet-CORE",
+      "audio": "enhanced/0245_enhanced_TF.wav",
+      "spectrogram": "enhanced/0245_enhanced_TF_spectrogram.png"
+    },
+    {
+      "id": "SP",
+      "label": "SpatialNet-CORE",
+      "audio": "enhanced/0245_enhanced_SP.wav",
+      "spectrogram": "enhanced/0245_enhanced_SP_spectrogram.png"
+    }
+  ]
+}

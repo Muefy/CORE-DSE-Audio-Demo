@@ -1,0 +1,58 @@
+{
+  "id": "easy-03",
+  "split": "Easy",
+  "sampleId": "0175",
+  "mixtureSpeakerCount": 2,
+  "mixtureAudio": "noisy/0175_mic0.wav",
+  "mixtureSpectrogram": "noisy/0175_mic0_spectrogram.png",
+  "target": {
+    "azimuthDeg": 47.0892,
+    "elevationDeg": 0,
+    "distanceM": 0.9093,
+    "cleanAudio": "clean/0175.wav",
+    "cleanSpectrogram": "clean/0175_spectrogram.png"
+  },
+  "acousticConditions": {
+    "noise": {
+      "azimuthDeg": 34.4763,
+      "elevationDeg": 0,
+      "distanceM": 2.2128
+    },
+    "room": {
+      "shape": "rect",
+      "dimensionsM": {
+        "x": 5.6358,
+        "y": 9.4349,
+        "z": 2.8412
+      },
+      "t60S": 0.1286
+    }
+  },
+  "enhancedMetricsFile": "enhanced/evaluation_metrics.csv",
+  "experiments": [
+    {
+      "id": "ID3",
+      "label": "JNF-SSF",
+      "audio": "enhanced/0175_enhanced_id3.wav",
+      "spectrogram": "enhanced/0175_enhanced_id3_spectrogram.png"
+    },
+    {
+      "id": "ID4",
+      "label": "JNF-Concat",
+      "audio": "enhanced/0175_enhanced_id4.wav",
+      "spectrogram": "enhanced/0175_enhanced_id4_spectrogram.png"
+    },
+    {
+      "id": "ID8",
+      "label": "JNF-SoundCompass-Fusion",
+      "audio": "enhanced/0175_enhanced_id8.wav",
+      "spectrogram": "enhanced/0175_enhanced_id8_spectrogram.png"
+    },
+    {
+      "id": "ID9",
+      "label": "JNF-CORE",
+      "audio": "enhanced/0175_enhanced_id9.wav",
+      "spectrogram": "enhanced/0175_enhanced_id9_spectrogram.png"
+    }
+  ]
+}
