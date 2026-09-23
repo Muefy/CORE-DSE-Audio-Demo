@@ -181,7 +181,7 @@ function AcousticConditions({ scene }: { scene: Scene }) {
 
   return (
     <dl className="acoustic-grid" aria-label="Acoustic conditions">
-      <div><dt>Number Of Speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
+      <div><dt>Number of Speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
       <div><dt>Target Position</dt><dd>Azimuth {target.azimuthDeg.toFixed(1)}° · Elevation {target.elevationDeg.toFixed(1)}° · Distance {target.distanceM.toFixed(2)} m</dd></div>
     </dl>
   );
