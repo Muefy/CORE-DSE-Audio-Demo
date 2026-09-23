@@ -40,7 +40,6 @@ interface Scene {
     room: {
       shape: string;
       dimensionsM: { x: number; y: number; z: number };
-      t60S: number;
     };
   };
   experiments: Experiment[];
@@ -57,7 +56,6 @@ interface Track {
 
 interface TrackCardProps {
   track: Track;
-  showNonIntrusive: boolean;
   savedPosition: (key: string) => number;
   rememberPosition: (key: string, seconds: number) => void;
   onPlay: (audio: HTMLAudioElement) => void;
@@ -87,7 +85,7 @@ function parseScene(raw: unknown, expectedId: SceneId): Scene {
     !path(target?.cleanAudio) || !path(target?.cleanSpectrogram) ||
     !finite(target?.azimuthDeg) || !finite(target?.elevationDeg) || !finite(target?.distanceM) ||
     !finite(noise?.azimuthDeg) || !finite(noise?.elevationDeg) || !finite(noise?.distanceM) ||
-    !room?.shape || !finite(room.t60S) ||
+    !room?.shape ||
     !finite(room.dimensionsM?.x) || !finite(room.dimensionsM?.y) || !finite(room.dimensionsM?.z) ||
     !Array.isArray(scene.experiments) ||
     scene.experiments.some((entry) => !entry.id || !path(entry.audio) || !path(entry.spectrogram))
@@ -189,13 +187,12 @@ function AcousticConditions({ scene }: { scene: Scene }) {
       <div><dt>Target</dt><dd>Az {target.azimuthDeg.toFixed(1)}° · El {target.elevationDeg.toFixed(1)}° · {target.distanceM.toFixed(2)} m</dd></div>
       <div><dt>Noise source</dt><dd>Az {noise.azimuthDeg.toFixed(1)}° · El {noise.elevationDeg.toFixed(1)}° · {noise.distanceM.toFixed(2)} m</dd></div>
       <div><dt>Room</dt><dd>{roomShape} · {room.dimensionsM.x.toFixed(2)} × {room.dimensionsM.y.toFixed(2)} × {room.dimensionsM.z.toFixed(2)} m</dd></div>
-      <div><dt>T<sub>60</sub></dt><dd>{room.t60S.toFixed(3)} s</dd></div>
     </dl>
   );
 }
 
 /** 绘制当前音轨的音频控件、可跳转语谱图与可用指标。 */
-function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
+function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [position, setPosition] = useState(() => savedPosition(track.key));
   const [audioError, setAudioError] = useState(false);
@@ -285,14 +282,12 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
             <div><dt>ESTOI</dt><dd>{(track.metrics.ESTOI * 100).toFixed(1)}%</dd></div>
             <div><dt>SI-SDR</dt><dd>{track.metrics.SISDR.toFixed(3)} dB</dd></div>
           </dl>
-          {showNonIntrusive && (
-            <dl className="metric-grid metric-grid--secondary">
-              <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(3)}</dd></div>
-              <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(3)}</dd></div>
-              <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(3)}</dd></div>
-              <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(3)}</dd></div>
-            </dl>
-          )}
+          <dl className="metric-grid metric-grid--secondary">
+            <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(3)}</dd></div>
+            <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(3)}</dd></div>
+            <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(3)}</dd></div>
+            <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(3)}</dd></div>
+          </dl>
         </div>
       )}
     </article>
@@ -305,7 +300,6 @@ export default function AudioDemo() {
   const [scenes, setScenes] = useState<Partial<Record<SceneId, Scene>>>({});
   const [sceneErrors, setSceneErrors] = useState<Partial<Record<SceneId, string>>>({});
   const [metricState, setMetricState] = useState<{ sceneId: SceneId; rows?: Record<string, MetricRow>; error?: string } | null>(null);
-  const [showNonIntrusive, setShowNonIntrusive] = useState(false);
   const activeAudio = useRef<HTMLAudioElement | null>(null);
   const positions = useRef(new Map<string, number>());
   const scene = scenes[selectedId];
@@ -355,12 +349,11 @@ export default function AudioDemo() {
     if (activeAudio.current === audio) activeAudio.current = null;
   }
 
-  /** 切换场景前停止播放，并将非侵入式指标恢复为折叠状态。 */
+  /** 切换场景前停止当前音轨播放。 */
   function selectScene(id: SceneId) {
     if (id === selectedId) return;
     activeAudio.current?.pause();
     activeAudio.current = null;
-    setShowNonIntrusive(false);
     setSelectedId(id);
   }
 
@@ -409,14 +402,6 @@ export default function AudioDemo() {
                 <span className="scene-overline">{scene.split} · Sample {scene.sampleId}</span>
                 <h3>{sceneOptions.find((option) => option.id === selectedId)?.label}</h3>
               </div>
-              <button
-                type="button"
-                className="metric-toggle"
-                aria-expanded={showNonIntrusive}
-                onClick={() => setShowNonIntrusive((current) => !current)}
-              >
-                {showNonIntrusive ? "Hide non-intrusive metrics" : "Show non-intrusive metrics"}
-              </button>
             </div>
             <AcousticConditions scene={scene} />
             <div className="audio-track-grid">
@@ -424,7 +409,6 @@ export default function AudioDemo() {
                 <TrackCard
                   key={track.key}
                   track={track}
-                  showNonIntrusive={showNonIntrusive}
                   savedPosition={(key) => positions.current.get(key) ?? 0}
                   rememberPosition={(key, seconds) => positions.current.set(key, seconds)}
                   onPlay={handlePlay}

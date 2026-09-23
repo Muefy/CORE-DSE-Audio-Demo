@@ -24,8 +24,7 @@
         "x": 7.4371,
         "y": 8.0844,
         "z": 2.9304
-      },
-      "t60S": 0.2007
+      }
     }
   },
   "enhancedMetricsFile": "enhanced/evaluation_metrics.csv",
