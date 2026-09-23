@@ -177,22 +177,6 @@ h1 span { color: inherit; }
 .paper-figure img { display: block; max-width: 100%; }
 .paper-figure--overview { padding: 30px 20px; }
 .paper-figure--overview img { width: min(58%, 560px); }
-.figure-hotspot {
-  position: absolute;
-  left: 29%;
-  top: 46%;
-  width: 30%;
-  height: 13%;
-  border: 2px solid rgba(111, 87, 164, 0);
-  border-radius: 4px;
-  color: transparent;
-  background: transparent;
-  cursor: pointer;
-  transition: 160ms ease;
-}
-.figure-hotspot span { position: absolute; right: 6px; bottom: 6px; padding: 4px 7px; border-radius: 2px; color: transparent; font-size: 0.75rem; font-weight: 700; }
-.figure-hotspot:hover, .figure-hotspot:focus-visible { border-color: rgba(36, 79, 120, 0.72); background: rgba(36, 79, 120, 0.05); outline: none; }
-.figure-hotspot:hover span, .figure-hotspot:focus-visible span { color: var(--accent); background: white; box-shadow: 0 2px 8px rgba(20, 27, 36, 0.12); }
 
 .text-button, .primary-button, .icon-button { border: 0; cursor: pointer; }
 .text-button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 0; color: var(--accent); background: transparent; font-size: 0.88rem; font-weight: 700; }
@@ -325,7 +309,6 @@ h1 span { color: inherit; }
   .figure-toolbar { padding: 11px 13px; }
   .paper-figure--overview { padding: 14px 8px; }
   .paper-figure--overview img { width: min(86%, 440px); }
-  .figure-hotspot { left: 20%; width: 50%; }
   .method-dialog { width: calc(100% - 16px); max-height: 94vh; border-radius: 4px; }
   .dialog-topbar, .dialog-content { padding: 16px; }
   .paper-figure--detail { min-height: 340px; padding: 10px; }

@@ -150,11 +150,6 @@ export default function App() {
               </div>
               <div className="paper-figure paper-figure--overview">
                 <img src="./assets/paper/figure1-overview.png" alt="Overview of the CORE-DSE framework" />
-                <button className="figure-hotspot" type="button"
-                  onClick={() => setMethodPanel("coarse-extractor")}
-                  aria-label="Open Coarse Extractor architecture">
-                  <span>Explore</span>
-                </button>
               </div>
             </div>
           </div>
