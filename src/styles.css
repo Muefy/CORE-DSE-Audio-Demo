@@ -1,4 +1,4 @@
-/* 定义 CORE-DSE 学术展示页的浅色响应式布局，并限制 LGM 方法图的展示宽度。 */
+/* 定义 CORE-DSE 学术展示页的浅色响应式布局，并适配精简后的场景信息。 */
 :root {
   color: #1d1d1f;
   background: #ffffff;
@@ -259,9 +259,8 @@ h1 span { color: inherit; }
   border: 1px solid var(--line);
   background: #fafafa;
 }
-.acoustic-grid > div { display: flex; min-width: 0; gap: 11px; padding: 9px 0; border-bottom: 1px solid #e9e9e9; }
-.acoustic-grid > div:last-child { border-bottom: 0; }
-.acoustic-grid dt { flex: 0 0 100px; color: var(--muted); font-size: 0.82rem; font-weight: 650; }
+.acoustic-grid > div { display: flex; min-width: 0; gap: 11px; padding: 9px 0; }
+.acoustic-grid dt { flex: 0 0 130px; color: var(--muted); font-size: 0.82rem; font-weight: 650; }
 .acoustic-grid dd { min-width: 0; margin: 0; font-size: 0.88rem; line-height: 1.45; }
 
 .audio-track-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
@@ -319,7 +318,7 @@ h1 span { color: inherit; }
   .scene-choice span { font-size: 0.74rem; }
   .acoustic-grid { padding: 5px 12px; }
   .acoustic-grid > div { gap: 7px; }
-  .acoustic-grid dt { flex-basis: 88px; }
+  .acoustic-grid dt { flex-basis: 125px; }
   .audio-track-grid { grid-template-columns: 1fr; }
   .audio-track-card { padding: 12px; }
 }

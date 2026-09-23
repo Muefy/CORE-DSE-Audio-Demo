@@ -1,4 +1,4 @@
-// 展示六个场景的目标语音试听、语谱图、声学条件和质量指标。
+// 展示六个场景的目标语音试听、语谱图、精简场景信息和质量指标。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -175,18 +175,14 @@ function buildTracks(scene: Scene, metrics: Record<string, MetricRow>): Track[] 
   return tracks;
 }
 
-/** 使用场景清单中的原始数值展示可核实的声学条件。 */
+/** 展示说话人数量和目标位置。 */
 function AcousticConditions({ scene }: { scene: Scene }) {
-  const { target, acousticConditions } = scene;
-  const { noise, room } = acousticConditions;
-  const roomShape = room.shape === "rect" ? "Rectangular" : room.shape;
+  const { target } = scene;
 
   return (
     <dl className="acoustic-grid" aria-label="Acoustic conditions">
-      <div><dt>Speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
-      <div><dt>Target</dt><dd>Az {target.azimuthDeg.toFixed(1)}° · El {target.elevationDeg.toFixed(1)}° · {target.distanceM.toFixed(2)} m</dd></div>
-      <div><dt>Noise source</dt><dd>Az {noise.azimuthDeg.toFixed(1)}° · El {noise.elevationDeg.toFixed(1)}° · {noise.distanceM.toFixed(2)} m</dd></div>
-      <div><dt>Room</dt><dd>{roomShape} · {room.dimensionsM.x.toFixed(2)} × {room.dimensionsM.y.toFixed(2)} × {room.dimensionsM.z.toFixed(2)} m</dd></div>
+      <div><dt>Number of speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
+      <div><dt>Target Position</dt><dd>Azimuth {target.azimuthDeg.toFixed(1)}° · Elevation {target.elevationDeg.toFixed(1)}° · Distance {target.distanceM.toFixed(2)} m</dd></div>
     </dl>
   );
 }
@@ -399,7 +395,7 @@ export default function AudioDemo() {
           <>
             <div className="scene-detail-heading">
               <div>
-                <span className="scene-overline">{scene.split} · Sample {scene.sampleId}</span>
+                <span className="scene-overline">{scene.split} · Sample</span>
                 <h3>{sceneOptions.find((option) => option.id === selectedId)?.label}</h3>
               </div>
             </div>
