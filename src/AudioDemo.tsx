@@ -1,4 +1,4 @@
-// 展示六个场景的目标语音试听、语谱图、精简场景信息和质量指标。
+// 展示六个场景的目标语音试听、语谱图、标题式场景信息和质量指标。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -181,7 +181,7 @@ function AcousticConditions({ scene }: { scene: Scene }) {
 
   return (
     <dl className="acoustic-grid" aria-label="Acoustic conditions">
-      <div><dt>Number of speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
+      <div><dt>Number Of Speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
       <div><dt>Target Position</dt><dd>Azimuth {target.azimuthDeg.toFixed(1)}° · Elevation {target.elevationDeg.toFixed(1)}° · Distance {target.distanceM.toFixed(2)} m</dd></div>
     </dl>
   );
