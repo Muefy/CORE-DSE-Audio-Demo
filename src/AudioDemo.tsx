@@ -1,4 +1,4 @@
-// 将 Easy 与 Hard 试听分区展示，并按需展开非侵入式指标。
+// 按论文数据集名称分区展示 Easy 与 Hard 试听，并通过 DNSMOS 按钮展开指标。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -310,6 +310,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
   const [selectedId, setSelectedId] = useState<SceneId>(split === "Easy" ? "easy-01" : "hard-01");
   const [metricState, setMetricState] = useState<{ sceneId: SceneId; rows?: Record<string, MetricRow>; error?: string } | null>(null);
   const [showNonIntrusive, setShowNonIntrusive] = useState(false);
+  const datasetTitle = split === "Easy" ? "2D-Spatialized Dataset (Easy)" : "3D-Spatialized Dataset (Hard)";
   const options = sceneOptions.filter((option) => option.id.startsWith(`${split.toLowerCase()}-`));
   const scene = scenes[selectedId];
 
@@ -353,7 +354,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
 
   return (
     <section className="scene-group" aria-labelledby={`${split.toLowerCase()}-scenes-title`}>
-      <h3 className="scene-group-title" id={`${split.toLowerCase()}-scenes-title`}>{split}</h3>
+      <h3 className="scene-group-title" id={`${split.toLowerCase()}-scenes-title`}>{datasetTitle}</h3>
       <div className="scene-picker" role="group" aria-label={`Choose a ${split.toLowerCase()} audio scene`}>
         {options.map((option) => {
           const item = scenes[option.id];
@@ -388,7 +389,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
                 aria-controls={`${split.toLowerCase()}-track-grid`}
                 onClick={() => setShowNonIntrusive((current) => !current)}
               >
-                {showNonIntrusive ? "Hide non-intrusive metrics" : "Show non-intrusive metrics"}
+                {showNonIntrusive ? "Hide DNSMOS metrics" : "Show DNSMOS metrics"}
               </button>
             </div>
             <AcousticConditions scene={scene} />
