@@ -1,4 +1,4 @@
-// 展示六个场景的目标语音试听、语谱图、标题式场景信息和质量指标。
+// 展示六个场景的目标语音试听、规范坐标的语谱图、场景信息和质量指标。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -216,25 +216,8 @@ function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: 
         {track.kind === "clean" && <span className="reference-badge">Reference</span>}
       </div>
 
-      {audioError ? (
-        <p className="asset-error" role="alert">Audio unavailable for this track.</p>
-      ) : (
-        <audio
-          ref={audioRef}
-          controls
-          preload="metadata"
-          src={track.audio}
-          aria-label={`${track.label} audio`}
-          onLoadedMetadata={() => seekTo(savedPosition(track.key))}
-          onTimeUpdate={(event) => updatePosition(event.currentTarget.currentTime)}
-          onPlay={(event) => onPlay(event.currentTarget)}
-          onPause={(event) => onPause(event.currentTarget)}
-          onEnded={(event) => onPause(event.currentTarget)}
-          onError={() => setAudioError(true)}
-        />
-      )}
-
       <div className="spectrogram" aria-label={`${track.label} spectrogram, 0 to 10 seconds and 0 to 8 kilohertz`}>
+        <span className="frequency-label" aria-hidden="true">Frequency (kHz)</span>
         <div className="frequency-axis" aria-hidden="true"><span>8</span><span>4</span><span>0</span></div>
         <div className="spectrogram-main">
           {imageError ? (
@@ -266,10 +249,28 @@ function TrackCard({ track, savedPosition, rememberPosition, onPlay, onPause }: 
               <span className="spectrogram-cursor" style={{ left: `${Math.min(100, Math.max(0, position * 10))}%` }} aria-hidden="true" />
             </div>
           )}
-          <div className="time-axis" aria-hidden="true"><span>0</span><span>5</span><span>10 s</span></div>
         </div>
+        <div className="time-axis" aria-hidden="true"><span>0</span><span>5</span><span>10</span></div>
+        <span className="time-caption" aria-hidden="true">Time (s)</span>
       </div>
-      <p className="frequency-caption">Frequency (kHz)</p>
+
+      {audioError ? (
+        <p className="asset-error" role="alert">Audio unavailable for this track.</p>
+      ) : (
+        <audio
+          ref={audioRef}
+          controls
+          preload="metadata"
+          src={track.audio}
+          aria-label={`${track.label} audio`}
+          onLoadedMetadata={() => seekTo(savedPosition(track.key))}
+          onTimeUpdate={(event) => updatePosition(event.currentTarget.currentTime)}
+          onPlay={(event) => onPlay(event.currentTarget)}
+          onPause={(event) => onPause(event.currentTarget)}
+          onEnded={(event) => onPause(event.currentTarget)}
+          onError={() => setAudioError(true)}
+        />
+      )}
 
       {track.metrics && (
         <div className="metric-area">
@@ -394,10 +395,7 @@ export default function AudioDemo() {
         ) : (
           <>
             <div className="scene-detail-heading">
-              <div>
-                <span className="scene-overline">{scene.split} · Sample</span>
-                <h3>{sceneOptions.find((option) => option.id === selectedId)?.label}</h3>
-              </div>
+              <h3>{sceneOptions.find((option) => option.id === selectedId)?.label}</h3>
             </div>
             <AcousticConditions scene={scene} />
             <div className="audio-track-grid">
