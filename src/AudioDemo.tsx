@@ -1,4 +1,4 @@
-// 按论文数据集名称分区展示试听，按需展开 DNSMOS，并将所有质量指标保留两位小数。
+// 按论文数据集名称分区展示试听；ESTOI 显示三位小数，其余质量指标显示两位小数。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -288,7 +288,7 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         <div className="metric-area">
           <dl className="metric-grid">
             <div><dt>PESQ</dt><dd>{track.metrics.PESQ.toFixed(2)}</dd></div>
-            <div><dt>ESTOI</dt><dd>{(track.metrics.ESTOI * 100).toFixed(2)}%</dd></div>
+            <div><dt>ESTOI</dt><dd>{track.metrics.ESTOI.toFixed(3)}</dd></div>
             <div><dt>SI-SDR</dt><dd>{track.metrics.SISDR.toFixed(2)} dB</dd></div>
           </dl>
           {showNonIntrusive && (
