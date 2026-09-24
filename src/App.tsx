@@ -94,8 +94,8 @@ export default function App() {
   return (
     <>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="CORE-DSE home">
-          <span>CORE-DSE</span>
+        <a className="brand" href="#top" aria-label="CORE-DSE Audio Demo Page home">
+          <span>CORE-DSE Audio Demo Page</span>
         </a>
         <nav aria-label="Page sections">
           <a href="#abstract">Abstract</a>
