@@ -1,4 +1,4 @@
-// 按论文数据集名称分区展示 Easy 与 Hard 试听，并通过 DNSMOS 按钮展开指标。
+// 按论文数据集名称分区展示试听，按需展开 DNSMOS，并将所有质量指标保留两位小数。
 import { useEffect, useRef, useState } from "react";
 
 const sceneOptions = [
@@ -287,16 +287,16 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
       {track.metrics && (
         <div className="metric-area">
           <dl className="metric-grid">
-            <div><dt>PESQ</dt><dd>{track.metrics.PESQ.toFixed(3)}</dd></div>
-            <div><dt>ESTOI</dt><dd>{(track.metrics.ESTOI * 100).toFixed(1)}%</dd></div>
-            <div><dt>SI-SDR</dt><dd>{track.metrics.SISDR.toFixed(3)} dB</dd></div>
+            <div><dt>PESQ</dt><dd>{track.metrics.PESQ.toFixed(2)}</dd></div>
+            <div><dt>ESTOI</dt><dd>{(track.metrics.ESTOI * 100).toFixed(2)}%</dd></div>
+            <div><dt>SI-SDR</dt><dd>{track.metrics.SISDR.toFixed(2)} dB</dd></div>
           </dl>
           {showNonIntrusive && (
             <dl className="metric-grid metric-grid--secondary">
-              <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(3)}</dd></div>
-              <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(3)}</dd></div>
-              <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(3)}</dd></div>
-              <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(3)}</dd></div>
+              <div><dt>OVRL</dt><dd>{track.metrics.OVRL.toFixed(2)}</dd></div>
+              <div><dt>SIG</dt><dd>{track.metrics.SIG.toFixed(2)}</dd></div>
+              <div><dt>BAK</dt><dd>{track.metrics.BAK.toFixed(2)}</dd></div>
+              <div><dt>P808</dt><dd>{track.metrics.P808_MOS.toFixed(2)}</dd></div>
             </dl>
           )}
         </div>
