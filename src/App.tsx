@@ -1,4 +1,4 @@
-// 构建论文首页、逐层浏览的方法图和按场景切换的试听区；方法弹窗使用精简标题。
+// 构建摘要优先的论文展示页；试听区前移至方法图之前，并提供首屏试听入口。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
 
@@ -99,8 +99,8 @@ export default function App() {
         </a>
         <nav aria-label="Page sections">
           <a href="#abstract">Abstract</a>
+          <a className="nav-audio-link" href="#audio-demo">Audio Demo</a>
           <a href="#method">Method</a>
-          <a href="#audio-demo">Audio Demo</a>
         </nav>
       </header>
 
@@ -119,6 +119,7 @@ export default function App() {
               <p><sup>2</sup> NJU-Horizon Intelligent Audio Lab, Horizon Robotics, Beijing, China</p>
               <a href="mailto:lujing@nju.edu.cn">lujing@nju.edu.cn</a>
             </div>
+            <a className="hero-audio-link" href="#audio-demo">Listen to Audio Samples</a>
           </div>
 
         </section>
@@ -133,6 +134,14 @@ export default function App() {
               <strong>Index Terms:</strong> Directional speech extraction, microphone arrays, direction of arrival, cross-attention
             </p>
           </div>
+        </section>
+
+        <section className="demo-section" id="audio-demo" aria-labelledby="audio-demo-title">
+          <div className="section-heading">
+            <h2 id="audio-demo-title">Audio Demo</h2>
+          </div>
+
+          <AudioDemo />
         </section>
 
         <section className="method-section" id="method" aria-labelledby="method-title">
@@ -155,13 +164,6 @@ export default function App() {
           </div>
         </section>
 
-        <section className="demo-section" id="audio-demo" aria-labelledby="audio-demo-title">
-          <div className="section-heading">
-            <h2 id="audio-demo-title">Audio Demo</h2>
-          </div>
-
-          <AudioDemo />
-        </section>
       </main>
       <MethodDialog panel={methodPanel} onClose={() => setMethodPanel(null)} onPanelChange={setMethodPanel} />
     </>
