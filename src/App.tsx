@@ -1,4 +1,4 @@
-// 构建摘要优先的论文展示页；试听区前移至方法图之前，并提供首屏试听入口。
+// 构建摘要、方法和试听依次展示的论文页面，并提供首屏试听跳转入口。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
 
@@ -99,8 +99,8 @@ export default function App() {
         </a>
         <nav aria-label="Page sections">
           <a href="#abstract">Abstract</a>
-          <a className="nav-audio-link" href="#audio-demo">Audio Demo</a>
           <a href="#method">Method</a>
+          <a className="nav-audio-link" href="#audio-demo">Audio Demo</a>
         </nav>
       </header>
 
@@ -136,14 +136,6 @@ export default function App() {
           </div>
         </section>
 
-        <section className="demo-section" id="audio-demo" aria-labelledby="audio-demo-title">
-          <div className="section-heading">
-            <h2 id="audio-demo-title">Audio Demo</h2>
-          </div>
-
-          <AudioDemo />
-        </section>
-
         <section className="method-section" id="method" aria-labelledby="method-title">
           <div className="section-heading">
             <h2 id="method-title">Method overview</h2>
@@ -164,6 +156,13 @@ export default function App() {
           </div>
         </section>
 
+        <section className="demo-section" id="audio-demo" aria-labelledby="audio-demo-title">
+          <div className="section-heading">
+            <h2 id="audio-demo-title">Audio Demo</h2>
+          </div>
+
+          <AudioDemo />
+        </section>
       </main>
       <MethodDialog panel={methodPanel} onClose={() => setMethodPanel(null)} onPanelChange={setMethodPanel} />
     </>
