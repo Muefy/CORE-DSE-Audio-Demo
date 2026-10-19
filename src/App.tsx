@@ -1,4 +1,4 @@
-// 构建摘要、方法和试听依次展示的论文页面，并提供首屏试听跳转入口。
+// 使用居中论文首屏与深蓝标题；顶栏名称添加连字符，并与标签页共用语音波形图标。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
 
@@ -94,8 +94,9 @@ export default function App() {
   return (
     <>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="CORE-DSE Audio Demo Page home">
-          <span>CORE-DSE Audio Demo Page</span>
+        <a className="brand" href="#top" aria-label="CORE-DSE Audio-Demo-Page home">
+          <img className="brand-icon" src={`${import.meta.env.BASE_URL}favicon.svg`} width={28} height={28} alt="" aria-hidden="true" />
+          <span>CORE-DSE Audio-Demo-Page</span>
         </a>
         <nav aria-label="Page sections">
           <a href="#abstract">Abstract</a>
@@ -111,7 +112,8 @@ export default function App() {
               <span className="eyebrow">ICASSP 2027 submission</span>
             </div>
             <h1 id="paper-title">
-              <span>CORE-DSE:</span> Coarse Extraction and Refinement with Time-Frequency Gated Cross-Attention for Directional Speech Extraction
+              <span className="paper-name">CORE-DSE</span>{" "}
+              <span className="paper-title-copy">Coarse Extraction and Refinement with Time-Frequency Gated Cross-Attention for Directional Speech Extraction</span>
             </h1>
             <p className="authors">{authors.join(" · ")}</p>
             <div className="affiliations">
@@ -119,7 +121,10 @@ export default function App() {
               <p><sup>2</sup> NJU-Horizon Intelligent Audio Lab, Horizon Robotics, Beijing, China</p>
               <a href="mailto:lujing@nju.edu.cn">lujing@nju.edu.cn</a>
             </div>
-            <a className="hero-audio-link" href="#audio-demo">Listen to Audio Samples</a>
+            <a className="hero-audio-link" href="#audio-demo">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6 3.5a.8.8 0 0 1 1.2-.7l9 6.5a.85.85 0 0 1 0 1.4l-9 6.5a.8.8 0 0 1-1.2-.7z" /></svg>
+              Listen to Audio Samples
+            </a>
           </div>
 
         </section>

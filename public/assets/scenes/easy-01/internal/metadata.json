@@ -1,0 +1,167 @@
+{
+  "scene_id": "easy-01",
+  "sample_id": "0267",
+  "experiment": "MoDiX_JNF_v4_CEProbe_2026-09-08-01h32m",
+  "is_current_demo_id9": false,
+  "tf_gca_source": "core",
+  "probe_mask_role": "CE-only readout from the frozen CE-Probe",
+  "grid": {
+    "sample_rate_hz": 16000,
+    "n_fft": 512,
+    "hop_length": 256,
+    "matrix_shape": [
+      257,
+      626
+    ],
+    "time_range_s": [
+      0.0,
+      10.0
+    ],
+    "frequency_range_khz": [
+      0.0,
+      8.0
+    ],
+    "note": "直接使用模型中间张量；帧中心覆盖 0–10 s，不重新计算音频 STFT。"
+  },
+  "image": {
+    "width_px": 1200,
+    "height_px": 493,
+    "mode": "RGB",
+    "colormap": "inferno",
+    "axes_embedded": false,
+    "colorbar_embedded": false,
+    "high_frequency_at_top": true,
+    "resize_filter": "bilinear after colormapping"
+  },
+  "attention_color_scale": {
+    "min": 0.0,
+    "max": 1.0
+  },
+  "mask_color_scale": {
+    "min": 0.0,
+    "max": 1.356560230255127,
+    "percentile": 99.0,
+    "joint_percentile_value": 1.356560230255127,
+    "reference": "joint magnitudes of core and probe"
+  },
+  "spectrograms": {
+    "clean": "clean_spectrogram.png",
+    "enhanced": "enhanced_spectrogram.png"
+  },
+  "spectrogram_color_scale": {
+    "min": -80.0,
+    "max": 0.0,
+    "unit": "dB",
+    "reference": "Mixture mic 0 STFT magnitude peak",
+    "reference_peak": 32.5208625793457,
+    "reference_audio": {
+      "audio_file": "noisy/0267_mic0.wav",
+      "sha256": "06198db24e0f80624b0c0d31771f994d43680fc17abddf5e8599b67398396c78",
+      "scope": "scene"
+    },
+    "audio_sources": {
+      "clean": {
+        "audio_file": "clean/0267.wav",
+        "sha256": "f4237cda3aec994dcc6c1edec41fd76501c12945625a7bb72f5151d5f1b8cbe6",
+        "scope": "scene"
+      },
+      "enhanced": {
+        "audio_file": "best_model_240_enhanced/data_test_260607_normal/0267_enhanced.wav",
+        "sha256": "883b43dea6be52d258b7fcb5bf4e095c8935b34189e9d2076f2268c7b2fc88df",
+        "scope": "analysis_experiment"
+      }
+    },
+    "stft": {
+      "sample_rate_hz": 16000,
+      "duration_s": 10,
+      "n_fft": 512,
+      "hop_length": 256,
+      "window": "periodic Hann",
+      "center_padding": "constant zero",
+      "matrix_shape": [
+        257,
+        626
+      ]
+    }
+  },
+  "sources": {
+    "core": {
+      "checkpoint": "best_model_240.tar",
+      "sha256": "dd4786f025d6010f179455d3ecfcabfc418f786720ee5eff3349fdc264267f24"
+    },
+    "probe": {
+      "checkpoint": "best_probe_025.tar",
+      "sha256": "a39d3ec1eb707ba129823fa6eed3ac1088dd5b5fed3ce174b0e4e81c1dc30aa0"
+    }
+  },
+  "plots": [
+    {
+      "filename": "spatial_gate_head_0.png",
+      "source": "core",
+      "kind": "tf_gca_gate",
+      "branch": "spatial",
+      "head_index": 0,
+      "display_head": "H1",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "filename": "spatial_gate_head_1.png",
+      "source": "core",
+      "kind": "tf_gca_gate",
+      "branch": "spatial",
+      "head_index": 1,
+      "display_head": "H2",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "filename": "spatial_gate_head_2.png",
+      "source": "core",
+      "kind": "tf_gca_gate",
+      "branch": "spatial",
+      "head_index": 2,
+      "display_head": "H3",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "filename": "spatial_gate_head_3.png",
+      "source": "core",
+      "kind": "tf_gca_gate",
+      "branch": "spatial",
+      "head_index": 3,
+      "display_head": "H4",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "filename": "complex_mask_magnitude_probe.png",
+      "source": "probe",
+      "kind": "complex_mask_magnitude",
+      "min": 0.0,
+      "max": 1.356560230255127
+    },
+    {
+      "filename": "complex_mask_magnitude.png",
+      "source": "core",
+      "kind": "complex_mask_magnitude",
+      "min": 0.0,
+      "max": 1.356560230255127
+    },
+    {
+      "filename": "clean_spectrogram.png",
+      "source": "clean",
+      "kind": "spectrogram",
+      "min": -80.0,
+      "max": 0.0
+    },
+    {
+      "filename": "enhanced_spectrogram.png",
+      "source": "enhanced",
+      "kind": "spectrogram",
+      "min": -80.0,
+      "max": 0.0
+    }
+  ]
+}

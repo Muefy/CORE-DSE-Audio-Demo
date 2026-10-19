@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#17263c"/>
-  <path d="M13 33h7l4-13 7 27 6-22 5 13 4-5h6" fill="none" stroke="#9d82d5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="51" cy="18" r="5" fill="#7ea7d8"/>
+<!-- 深蓝五线语音波形，用于网页顶栏标识和浏览器标签页图标。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="#edf3fa" stroke="#d7e3ee"/>
+  <path d="M8 14v4m4-8v12m4-15v18m4-14v10m4-7v4" fill="none" stroke="#234f7d" stroke-width="2.4" stroke-linecap="round"/>
 </svg>

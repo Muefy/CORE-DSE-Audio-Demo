@@ -1,5 +1,11 @@
-// 按论文数据集名称分区展示试听；ESTOI 显示三位小数，其余质量指标显示两位小数。
-import { useEffect, useRef, useState } from "react";
+// 按论文数据集名称分区展示试听；恢复浏览器原生播放器并移除 Clean 的 Reference 标记。
+// 保留跨场景进度和语谱图联动；场景切换时保留原布局，待图像就绪后平滑更新。
+// Easy 新增独立内部分析模式，保留音频进度、指标展开状态及 Hard 播放隔离。
+// Easy 与 Hard 统一使用简洁 DNSMOS 按钮文案，展开和收起逻辑不变。
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import InternalVisualizations from "./InternalVisualizations";
+
+type SceneViewMode = "audio" | "internals";
 
 const sceneOptions = [
   { id: "easy-01", label: "Easy 01" },
@@ -52,6 +58,13 @@ interface Track {
   audio: string;
   spectrogram: string;
   metrics?: MetricRow;
+}
+
+interface SceneDetail {
+  sceneId: SceneId;
+  scene?: Scene;
+  tracks?: Track[];
+  error?: string;
 }
 
 interface TrackCardProps {
@@ -194,7 +207,14 @@ function AcousticConditions({ scene }: { scene: Scene }) {
   return (
     <dl className="acoustic-grid" aria-label="Acoustic conditions">
       <div><dt>Number of Speakers</dt><dd>{scene.mixtureSpeakerCount}</dd></div>
-      <div><dt>Target Position</dt><dd>Azimuth {target.azimuthDeg.toFixed(1)}° · Elevation {target.elevationDeg.toFixed(1)}° · Distance {target.distanceM.toFixed(2)} m</dd></div>
+      <div>
+        <dt>Target Position</dt>
+        <dd>
+          <span className="position-coordinate">Azimuth {target.azimuthDeg.toFixed(1)}°</span>{" · "}
+          <span className="position-coordinate">Elevation {target.elevationDeg.toFixed(1)}°</span>{" · "}
+          <span className="position-coordinate">Distance {target.distanceM.toFixed(2)} m</span>
+        </dd>
+      </div>
     </dl>
   );
 }
@@ -202,12 +222,25 @@ function AcousticConditions({ scene }: { scene: Scene }) {
 /** 绘制当前音轨的音频控件、可跳转语谱图与可用指标。 */
 function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const pendingSeekRef = useRef<number | null>(savedPosition(track.key));
   const [position, setPosition] = useState(() => savedPosition(track.key));
   const [audioError, setAudioError] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audio) {
+        audio.pause();
+        if (pendingSeekRef.current === null && audio.readyState >= HTMLMediaElement.HAVE_METADATA) rememberPosition(track.key, audio.currentTime);
+        onPause(audio);
+      }
+    };
+  }, [track.key]);
+
   /** 同时更新本卡游标和跨场景切换保存的播放位置。 */
   function updatePosition(seconds: number) {
+    if (!Number.isFinite(seconds)) return;
     setPosition(seconds);
     rememberPosition(track.key, seconds);
   }
@@ -215,17 +248,32 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   /** 将鼠标或键盘指定的时间应用到对应音频。 */
   function seekTo(seconds: number) {
     const audio = audioRef.current;
-    const duration = Number.isFinite(audio?.duration) ? audio!.duration : 10;
-    const nextPosition = Math.max(0, Math.min(duration, seconds));
-    if (audio && audio.readyState >= HTMLMediaElement.HAVE_METADATA) audio.currentTime = nextPosition;
+    const availableDuration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 10;
+    const nextPosition = Math.max(0, Math.min(availableDuration, seconds));
+    pendingSeekRef.current = nextPosition;
+    if (audio && audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      audio.currentTime = nextPosition;
+      pendingSeekRef.current = null;
+    }
     updatePosition(nextPosition);
   }
 
+  /** 在元数据可用时恢复已保存或提前指定的播放位置。 */
+  function loadMetadata() {
+    setAudioError(false);
+    seekTo(pendingSeekRef.current ?? savedPosition(track.key));
+  }
+
+  /** 同步暂停状态并保存音轨的实际位置。 */
+  function pausePlayback(audio: HTMLAudioElement) {
+    if (pendingSeekRef.current === null) updatePosition(audio.currentTime);
+    onPause(audio);
+  }
+
   return (
-    <article className="audio-track-card">
+    <article className={`audio-track-card${track.label.includes("CORE") ? " audio-track-card--core" : ""}`}>
       <div className="audio-track-heading">
         <h5>{track.label}</h5>
-        {track.kind === "clean" && <span className="reference-badge">Reference</span>}
       </div>
 
       <div className="spectrogram" aria-label={`${track.label} spectrogram, 0 to 10 seconds and 0 to 8 kilohertz`}>
@@ -266,23 +314,28 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         <span className="time-caption" aria-hidden="true">Time (s)</span>
       </div>
 
-      {audioError ? (
-        <p className="asset-error" role="alert">Audio unavailable for this track.</p>
-      ) : (
-        <audio
-          ref={audioRef}
-          controls
-          preload="metadata"
-          src={track.audio}
-          aria-label={`${track.label} audio`}
-          onLoadedMetadata={() => seekTo(savedPosition(track.key))}
-          onTimeUpdate={(event) => updatePosition(event.currentTarget.currentTime)}
-          onPlay={(event) => onPlay(event.currentTarget)}
-          onPause={(event) => onPause(event.currentTarget)}
-          onEnded={(event) => onPause(event.currentTarget)}
-          onError={() => setAudioError(true)}
-        />
-      )}
+      <audio
+        ref={audioRef}
+        controls
+        preload="metadata"
+        src={track.audio}
+        aria-label={`${track.label} audio`}
+        onLoadedMetadata={loadMetadata}
+        onTimeUpdate={(event) => {
+          if (pendingSeekRef.current === null) updatePosition(event.currentTarget.currentTime);
+        }}
+        onPlay={(event) => {
+          setAudioError(false);
+          onPlay(event.currentTarget);
+        }}
+        onPause={(event) => pausePlayback(event.currentTarget)}
+        onEnded={(event) => pausePlayback(event.currentTarget)}
+        onError={(event) => {
+          pausePlayback(event.currentTarget);
+          setAudioError(true);
+        }}
+      />
+      {audioError && <p className="asset-error" role="alert">Audio unavailable for this track.</p>}
 
       {track.metrics && (
         <div className="metric-area">
@@ -305,57 +358,145 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   );
 }
 
-/** 独立管理一个难度区域的场景切换、指标加载与展开状态。 */
+/** 在模式切换和异步内容就绪时平滑调整高度，并取消过期的淡入淡出。 */
+function AnimatedSceneView({ mode, children }: { mode: SceneViewMode; children: (visibleMode: SceneViewMode) => ReactNode }) {
+  const [visibleMode, setVisibleMode] = useState(mode);
+  const [phase, setPhase] = useState<"idle" | "exiting" | "entering">("idle");
+  const [height, setHeight] = useState<number>();
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const visibleModeRef = useRef(mode);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    /** 系统减少动态效果的变更立即作用于当前模式过渡。 */
+    function updateMotion() { setReducedMotion(query.matches); }
+    query.addEventListener("change", updateMotion);
+    return () => query.removeEventListener("change", updateMotion);
+  }, []);
+
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    /** 跟随内部内容的真实高度，异步元数据和错误恢复也保持连续布局。 */
+    function measure() { if (content) setHeight(content.getBoundingClientRect().height); }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    let frame: number | undefined;
+    if (reducedMotion || mode === visibleModeRef.current) {
+      visibleModeRef.current = mode;
+      setVisibleMode(mode);
+      setPhase("idle");
+      return;
+    }
+    setPhase("exiting");
+    timer = window.setTimeout(() => {
+      visibleModeRef.current = mode;
+      setVisibleMode(mode);
+      setPhase("entering");
+      frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => setPhase("idle"));
+      });
+    }, 110);
+    return () => {
+      window.clearTimeout(timer);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    };
+  }, [mode, reducedMotion]);
+
+  return (
+    <div className="scene-view-shell" style={{ height }}>
+      <div ref={contentRef} className={`scene-view scene-view--${phase}`} data-mode={visibleMode} data-phase={phase} inert={phase !== "idle"} aria-busy={phase !== "idle"}>
+        {children(visibleMode)}
+      </div>
+    </div>
+  );
+}
+
+/** 独立管理一个难度区域的场景、模式及指标状态。 */
 function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPosition, onPlay, onPause, onSceneChange }: SceneGroupProps) {
   const [selectedId, setSelectedId] = useState<SceneId>(split === "Easy" ? "easy-01" : "hard-01");
-  const [metricState, setMetricState] = useState<{ sceneId: SceneId; rows?: Record<string, MetricRow>; error?: string } | null>(null);
+  const [detail, setDetail] = useState<SceneDetail | null>(null);
   const [showNonIntrusive, setShowNonIntrusive] = useState(false);
+  const [viewMode, setViewMode] = useState<SceneViewMode>("audio");
+  const contentRegionRef = useRef<HTMLDivElement>(null);
   const datasetTitle = split === "Easy" ? "2D-Spatialized Dataset (Easy)" : "3D-Spatialized Dataset (Hard)";
   const options = sceneOptions.filter((option) => option.id.startsWith(`${split.toLowerCase()}-`));
   const scene = scenes[selectedId];
+  const sceneError = sceneErrors[selectedId];
+  const isSwitching = detail?.sceneId !== selectedId;
+  const selectedIndex = options.findIndex((option) => option.id === selectedId);
 
   useEffect(() => {
-    if (!scene) return;
+    if ((!scene && !sceneError) || detail?.sceneId === selectedId) return;
     const controller = new AbortController();
-    setMetricState({ sceneId: selectedId });
-    fetch(sceneAssetUrl(selectedId, scene.enhancedMetricsFile), { signal: controller.signal })
-      .then(async (response) => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let exitTimer: number;
+    const exitReady = new Promise<void>((resolve) => {
+      exitTimer = window.setTimeout(resolve, reducedMotion ? 0 : 120);
+    });
+
+    /** 并行准备指标和图像，淡出完成后一次性替换详情；忽略已取消的选择。 */
+    async function prepareDetail() {
+      let nextDetail: SceneDetail;
+      try {
+        if (sceneError) throw new Error(sceneError);
+        if (!scene) return;
+        const response = await fetch(sceneAssetUrl(selectedId, scene.enhancedMetricsFile), { signal: controller.signal });
         if (!response.ok) throw new Error(`Quality metrics could not be loaded (${response.status}).`);
         const rows = parseMetricsCsv(await response.text());
-        setMetricState({ sceneId: selectedId, rows });
-      })
-      .catch((error: unknown) => {
+        const tracks = buildTracks(scene, rows);
+        await Promise.all(tracks.map(async (track) => {
+          const image = new Image();
+          image.src = track.spectrogram;
+          await image.decode().catch(() => undefined);
+        }));
+        nextDetail = { sceneId: selectedId, scene, tracks };
+      } catch (error: unknown) {
         if (controller.signal.aborted) return;
-        setMetricState({ sceneId: selectedId, error: error instanceof Error ? error.message : "Quality metrics are unavailable." });
-      });
-    return () => controller.abort();
-  }, [scene, selectedId]);
+        nextDetail = { sceneId: selectedId, error: error instanceof Error ? error.message : "Quality metrics are unavailable." };
+      }
+      await exitReady;
+      if (controller.signal.aborted) return;
+      setShowNonIntrusive(false);
+      setDetail(nextDetail);
+    }
+
+    void prepareDetail();
+    return () => {
+      controller.abort();
+      window.clearTimeout(exitTimer);
+    };
+  }, [scene, sceneError, selectedId, detail?.sceneId]);
 
   /** 切换本区域场景时暂停播放，并恢复指标的默认折叠状态。 */
   function selectScene(id: SceneId) {
     if (id === selectedId) return;
     onSceneChange();
+    setViewMode("audio");
     setShowNonIntrusive(false);
     setSelectedId(id);
   }
 
-  let tracks: Track[] | null = null;
-  let contentError: string | undefined = sceneErrors[selectedId];
-  if (scene && metricState?.sceneId === selectedId) {
-    if (metricState.error) contentError = metricState.error;
-    else if (metricState.rows) {
-      try {
-        tracks = buildTracks(scene, metricState.rows);
-      } catch (error) {
-        contentError = error instanceof Error ? error.message : "Required track data are unavailable.";
-      }
-    }
+  /** 进入内部分析时只暂停本区音轨；返回时复用已保存的独立进度。 */
+  function toggleView() {
+    if (viewMode === "audio") {
+      contentRegionRef.current?.querySelectorAll("audio").forEach((audio) => audio.pause());
+      setViewMode("internals");
+    } else setViewMode("audio");
   }
 
   return (
     <section className="scene-group" aria-labelledby={`${split.toLowerCase()}-scenes-title`}>
       <h3 className="scene-group-title" id={`${split.toLowerCase()}-scenes-title`}>{datasetTitle}</h3>
       <div className="scene-picker" role="group" aria-label={`Choose a ${split.toLowerCase()} audio scene`}>
+        <span className="scene-picker-indicator" style={{ transform: `translateX(calc(${selectedIndex * 100}% + ${selectedIndex * 4}px))` }} aria-hidden="true" />
         {options.map((option) => {
           const item = scenes[option.id];
           return (
@@ -373,40 +514,60 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
         })}
       </div>
 
-      <div className="scene-detail" aria-live="polite">
-        {contentError ? (
-          <p className="scene-message scene-message--error" role="alert">{contentError}</p>
-        ) : !scene || !tracks ? (
-          <p className="scene-message">Loading audio scene…</p>
-        ) : (
-          <>
-            <div className="scene-detail-heading">
-              <h4>{options.find((option) => option.id === selectedId)?.label}</h4>
-              <button
-                type="button"
-                className="metric-toggle"
-                aria-expanded={showNonIntrusive}
-                aria-controls={`${split.toLowerCase()}-track-grid`}
-                onClick={() => setShowNonIntrusive((current) => !current)}
-              >
-                {showNonIntrusive ? "Hide DNSMOS metrics" : "Show DNSMOS metrics"}
-              </button>
-            </div>
-            <AcousticConditions scene={scene} />
-            <div className="audio-track-grid" id={`${split.toLowerCase()}-track-grid`}>
-              {tracks.map((track) => (
-                <TrackCard
-                  key={track.key}
-                  track={track}
-                  showNonIntrusive={showNonIntrusive}
-                  savedPosition={savedPosition}
-                  rememberPosition={rememberPosition}
-                  onPlay={onPlay}
-                  onPause={onPause}
-                />
-              ))}
-            </div>
-          </>
+      <div className="scene-detail-shell">
+        <div className={`scene-detail${isSwitching ? " scene-detail--switching" : ""}`} aria-busy={isSwitching} inert={isSwitching}>
+          {detail?.error ? (
+            <p className="scene-message scene-message--error" role="alert">{detail.error}</p>
+          ) : detail?.scene && detail.tracks ? (
+            <>
+              <div className={`scene-detail-heading${split === "Easy" ? " scene-detail-heading--with-internals" : ""}`}>
+                <h4>{options.find((option) => option.id === detail.sceneId)?.label}</h4>
+                <div className="scene-detail-actions">
+                  {viewMode === "audio" && (
+                    <button
+                      type="button"
+                      className="metric-toggle"
+                      aria-expanded={showNonIntrusive}
+                      aria-controls={`${split.toLowerCase()}-track-grid`}
+                      onClick={() => setShowNonIntrusive((current) => !current)}
+                    >
+                      {showNonIntrusive ? "Hide DNSMOS" : "Show DNSMOS"}
+                    </button>
+                  )}
+                  {split === "Easy" && (
+                    <button type="button" className="primary-button internals-toggle" aria-pressed={viewMode === "internals"} aria-controls="easy-scene-content" onClick={toggleView}>
+                      {viewMode === "audio" ? "View Internals" : "Back to Audio"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <AcousticConditions scene={detail.scene} />
+              <div ref={contentRegionRef} id={`${split.toLowerCase()}-scene-content`}>
+                <AnimatedSceneView key={detail.sceneId} mode={viewMode}>
+                  {(visibleMode) => visibleMode === "internals" ? (
+                    <InternalVisualizations key={detail.sceneId} sceneId={detail.sceneId} sampleId={detail.scene!.sampleId} />
+                  ) : (
+                    <div className="audio-track-grid" id={`${split.toLowerCase()}-track-grid`}>
+                      {detail.tracks!.map((track) => (
+                        <TrackCard
+                          key={track.key}
+                          track={track}
+                          showNonIntrusive={showNonIntrusive}
+                          savedPosition={savedPosition}
+                          rememberPosition={rememberPosition}
+                          onPlay={onPlay}
+                          onPause={onPause}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </AnimatedSceneView>
+              </div>
+            </>
+          ) : null}
+        </div>
+        {isSwitching && (
+          <p className={`scene-message scene-loading${detail ? " scene-loading--overlay" : ""}`} role="status">Loading audio scene…</p>
         )}
       </div>
     </section>
