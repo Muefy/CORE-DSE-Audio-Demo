@@ -4,13 +4,13 @@
   "sampleId": "0267",
   "mixtureSpeakerCount": 2,
   "mixtureAudio": "noisy/0267_mic0.wav",
-  "mixtureSpectrogram": "noisy/0267_mic0_spectrogram.png",
+  "mixtureSpectrogram": "noisy/0267_mic0_spectrogram.webp",
   "target": {
     "azimuthDeg": -22.4908,
     "elevationDeg": 0,
     "distanceM": 0.7401,
     "cleanAudio": "clean/0267.wav",
-    "cleanSpectrogram": "clean/0267_spectrogram.png"
+    "cleanSpectrogram": "clean/0267_spectrogram.webp"
   },
   "acousticConditions": {
     "noise": {
@@ -33,25 +33,25 @@
       "id": "ID3",
       "label": "JNF-SSF",
       "audio": "enhanced/0267_enhanced_id3.wav",
-      "spectrogram": "enhanced/0267_enhanced_id3_spectrogram.png"
+      "spectrogram": "enhanced/0267_enhanced_id3_spectrogram.webp"
     },
     {
       "id": "ID4",
       "label": "JNF-Concat",
       "audio": "enhanced/0267_enhanced_id4.wav",
-      "spectrogram": "enhanced/0267_enhanced_id4_spectrogram.png"
+      "spectrogram": "enhanced/0267_enhanced_id4_spectrogram.webp"
     },
     {
       "id": "ID8",
       "label": "JNF-SoundCompass-Fusion",
       "audio": "enhanced/0267_enhanced_id8.wav",
-      "spectrogram": "enhanced/0267_enhanced_id8_spectrogram.png"
+      "spectrogram": "enhanced/0267_enhanced_id8_spectrogram.webp"
     },
     {
       "id": "ID9",
       "label": "JNF-CORE",
       "audio": "enhanced/0267_enhanced_id9.wav",
-      "spectrogram": "enhanced/0267_enhanced_id9_spectrogram.png"
+      "spectrogram": "enhanced/0267_enhanced_id9_spectrogram.webp"
     }
   ]
 }

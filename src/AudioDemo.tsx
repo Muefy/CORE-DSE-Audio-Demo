@@ -1,9 +1,10 @@
-// 按论文数据集名称分区展示试听；恢复浏览器原生播放器并移除 Clean 的 Reference 标记。
-// 保留跨场景进度和语谱图联动；场景切换时保留原布局，待图像就绪后平滑更新。
-// Easy 新增独立内部分析模式，保留音频进度、指标展开状态及 Hard 播放隔离。
-// Easy 与 Hard 统一使用简洁 DNSMOS 按钮文案，展开和收起逻辑不变。
+// 按论文数据集分区试听：切换只等待小型指标文件，语谱图独立加载与重试。
+// 默认场景提前准备，其他试听图片与原始 WAV 分阶段预取，缓存复访数据。
+// 保留原生播放器、独立进度、互斥播放、语谱图跳转和 Easy 内部分析模式。
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import InternalVisualizations from "./InternalVisualizations";
+import { optimizedImageUrl } from "./imageAssets";
+import { mediaCache } from "./mediaCache";
 
 type SceneViewMode = "audio" | "internals";
 
@@ -85,9 +86,15 @@ interface SceneGroupProps {
   onPlay: (audio: HTMLAudioElement) => void;
   onPause: (audio: HTMLAudioElement) => void;
   onSceneChange: () => void;
+  onReloadScene: (id: SceneId) => void;
 }
 
 const metricNames: MetricName[] = ["PESQ", "ESTOI", "SISDR", "OVRL", "SIG", "BAK", "P808_MOS"];
+const metricsCache = new Map<string, Record<string, MetricRow>>();
+const metricsRequests = new Map<string, Promise<Record<string, MetricRow>>>();
+const detailCache = new Map<SceneId, SceneDetail>();
+const sceneCache = new Map<SceneId, Scene>();
+const sceneRequests = new Map<SceneId, Promise<Scene>>();
 
 /** 依据 Vite 基路径拼接可在本地和子路径部署下使用的资产地址。 */
 function sceneAssetUrl(sceneId: SceneId, relativePath: string): string {
@@ -120,6 +127,25 @@ function parseScene(raw: unknown, expectedId: SceneId): Scene {
   return scene;
 }
 
+/** 共享场景清单请求并限制等待时间，不让无关场景阻塞默认试听。 */
+function loadScene(id: SceneId, retry = false): Promise<Scene> {
+  if (retry) { sceneCache.delete(id); detailCache.delete(id); }
+  const cached = sceneCache.get(id);
+  if (cached) return Promise.resolve(cached);
+  const pending = sceneRequests.get(id);
+  if (pending) return pending;
+  const request = fetch(sceneAssetUrl(id, "scene.json"), { signal: AbortSignal.timeout(15000), cache: retry ? "reload" : "default" })
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`Scene metadata could not be loaded (${response.status}).`);
+      const scene = parseScene(await response.json(), id);
+      sceneCache.set(id, scene);
+      return scene;
+    })
+    .finally(() => sceneRequests.delete(id));
+  sceneRequests.set(id, request);
+  return request;
+}
+
 /** 将静态 CSV 严格解析为按实验 ID 索引的有限数值指标。 */
 function parseMetricsCsv(csv: string): Record<string, MetricRow> {
   const lines = csv.trim().replace(/^\uFEFF/, "").split(/\r?\n/);
@@ -150,6 +176,36 @@ function parseMetricsCsv(csv: string): Record<string, MetricRow> {
   return rows;
 }
 
+/** 复用成功指标和正在进行的请求，失败后允许用户明确重试。 */
+function loadMetrics(scene: Scene): Promise<Record<string, MetricRow>> {
+  const url = sceneAssetUrl(scene.id as SceneId, scene.enhancedMetricsFile);
+  const cached = metricsCache.get(url);
+  if (cached) return Promise.resolve(cached);
+  const pending = metricsRequests.get(url);
+  if (pending) return pending;
+  const request = fetch(url, { signal: AbortSignal.timeout(15000) })
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`Quality metrics could not be loaded (${response.status}).`);
+      const rows = parseMetricsCsv(await response.text());
+      metricsCache.set(url, rows);
+      return rows;
+    })
+    .finally(() => metricsRequests.delete(url));
+  metricsRequests.set(url, request);
+  return request;
+}
+
+/** 只列出页面展示的试听资源，排除 ID 5、Hard SC 与内部分析图。 */
+function sceneMedia(scene: Scene): { images: string[]; audio: string[] } {
+  const ids = scene.split === "Easy" ? ["ID3", "ID4", "ID8", "ID9"] : ["TF", "SP"];
+  const entries = ids.flatMap((id) => scene.experiments.filter((experiment) => experiment.id === id));
+  const images = [scene.mixtureSpectrogram, scene.target.cleanSpectrogram, ...entries.map((entry) => entry.spectrogram)]
+    .map((path) => optimizedImageUrl(sceneAssetUrl(scene.id as SceneId, path)));
+  const audio = [scene.mixtureAudio, scene.target.cleanAudio, ...entries.map((entry) => entry.audio)]
+    .map((path) => sceneAssetUrl(scene.id as SceneId, path));
+  return { images, audio };
+}
+
 /** 按论文试听顺序将场景清单映射为当前应展示的音轨。 */
 function buildTracks(scene: Scene, metrics: Record<string, MetricRow>): Track[] {
   const sceneId = scene.id as SceneId;
@@ -159,14 +215,14 @@ function buildTracks(scene: Scene, metrics: Record<string, MetricRow>): Track[] 
       label: "Unprocessed",
       kind: "unprocessed",
       audio: sceneAssetUrl(sceneId, scene.mixtureAudio),
-      spectrogram: sceneAssetUrl(sceneId, scene.mixtureSpectrogram),
+      spectrogram: optimizedImageUrl(sceneAssetUrl(sceneId, scene.mixtureSpectrogram)),
     },
     {
       key: `${sceneId}:clean`,
       label: "Clean",
       kind: "clean",
       audio: sceneAssetUrl(sceneId, scene.target.cleanAudio),
-      spectrogram: sceneAssetUrl(sceneId, scene.target.cleanSpectrogram),
+      spectrogram: optimizedImageUrl(sceneAssetUrl(sceneId, scene.target.cleanSpectrogram)),
     },
   ];
 
@@ -193,11 +249,67 @@ function buildTracks(scene: Scene, metrics: Record<string, MetricRow>): Track[] 
       label: item.label,
       kind: "enhanced",
       audio: sceneAssetUrl(sceneId, experiment.audio),
-      spectrogram: sceneAssetUrl(sceneId, experiment.spectrogram),
+      spectrogram: optimizedImageUrl(sceneAssetUrl(sceneId, experiment.spectrogram)),
       metrics: row,
     });
   }
   return tracks;
+}
+
+/** 单图接近视口后复用调度缓存，失败仅影响本图并保留固定占位。 */
+function AudioSpectrogramImage({ url, label, onReady }: { url: string; label: string; onReady: () => void }) {
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [requested, setRequested] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>();
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (requested || !surfaceRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) { setRequested(true); observer.disconnect(); }
+    }, { rootMargin: "160px" });
+    observer.observe(surfaceRef.current);
+    return () => observer.disconnect();
+  }, [requested]);
+
+  useEffect(() => {
+    if (!requested) return;
+    let live = true;
+    setFailed(false);
+    const request = mediaCache.acquire(url, "image", attempt > 0);
+    request.promise.then((value) => { if (live) setImageUrl(value); }).catch((error: unknown) => {
+      if (live && !(error instanceof DOMException && error.name === "AbortError")) setFailed(true);
+    });
+    return () => { live = false; request.release(); };
+  }, [url, requested, attempt]);
+
+  /** 解码只控制单图淡入，不再阻塞场景切换。 */
+  async function imageLoaded(image: HTMLImageElement) {
+    try {
+      await image.decode();
+      if (image.isConnected) { setLoaded(true); onReady(); }
+    } catch { if (image.isConnected) setFailed(true); }
+  }
+
+  /** 清理失败缓存并重新请求这一张语谱图。 */
+  function retry() {
+    mediaCache.invalidate(url);
+    setLoaded(false);
+    setImageUrl(undefined);
+    setFailed(false);
+    setAttempt((current) => current + 1);
+  }
+
+  return (
+    <div ref={surfaceRef} className="audio-image-layer" data-image-state={failed ? "error" : loaded ? "ready" : "loading"} aria-busy={!loaded && !failed}>
+      {imageUrl && !failed && <img src={imageUrl} alt="" width={1200} height={493} className={`audio-spectrogram-image${loaded ? " audio-spectrogram-image--loaded" : ""}`} draggable={false} onLoad={(event) => { void imageLoaded(event.currentTarget); }} onError={() => setFailed(true)} />}
+      {!loaded && <span className={`audio-image-status${failed ? " audio-image-status--error" : ""}`} role={failed ? "alert" : "status"}>
+        {failed ? <><span>Spectrogram could not be loaded.</span><button type="button" className="metric-toggle" aria-label={`Retry ${label} spectrogram`} onClick={(event) => { event.stopPropagation(); retry(); }}>Retry image</button></> : "Loading spectrogram…"}
+      </span>}
+    </div>
+  );
 }
 
 /** 展示说话人数量和目标位置。 */
@@ -225,13 +337,15 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   const pendingSeekRef = useRef<number | null>(savedPosition(track.key));
   const [position, setPosition] = useState(() => savedPosition(track.key));
   const [audioError, setAudioError] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [audioUrl] = useState(() => mediaCache.cachedUrl(track.audio) ?? track.audio);
 
   useEffect(() => {
     const audio = audioRef.current;
     return () => {
       if (audio) {
         audio.pause();
+        mediaCache.setBuffering(track.key, false);
         if (pendingSeekRef.current === null && audio.readyState >= HTMLMediaElement.HAVE_METADATA) rememberPosition(track.key, audio.currentTime);
         onPause(audio);
       }
@@ -267,6 +381,7 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   /** 同步暂停状态并保存音轨的实际位置。 */
   function pausePlayback(audio: HTMLAudioElement) {
     if (pendingSeekRef.current === null) updatePosition(audio.currentTime);
+    mediaCache.setBuffering(track.key, false);
     onPause(audio);
   }
 
@@ -280,11 +395,9 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         <span className="frequency-label" aria-hidden="true">Frequency (kHz)</span>
         <div className="frequency-axis" aria-hidden="true"><span>8</span><span>4</span><span>0</span></div>
         <div className="spectrogram-main">
-          {imageError ? (
-            <p className="asset-error spectrogram-error" role="alert">Spectrogram unavailable for this track.</p>
-          ) : (
             <div
               className="spectrogram-plot"
+              data-image-url={track.spectrogram}
               role="slider"
               tabIndex={0}
               aria-label={`Seek ${track.label} audio`}
@@ -305,10 +418,9 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
                 event.preventDefault();
               }}
             >
-              <img src={track.spectrogram} alt="" loading="lazy" draggable={false} onError={() => setImageError(true)} />
-              <span className="spectrogram-cursor" style={{ left: `${Math.min(100, Math.max(0, position * 10))}%` }} aria-hidden="true" />
+              <AudioSpectrogramImage url={track.spectrogram} label={track.label} onReady={() => setImageLoaded(true)} />
+              {imageLoaded && <span className="spectrogram-cursor" style={{ left: `${Math.min(100, Math.max(0, position * 10))}%` }} aria-hidden="true" />}
             </div>
-          )}
         </div>
         <div className="time-axis" aria-hidden="true"><span>0</span><span>5</span><span>10</span></div>
         <span className="time-caption" aria-hidden="true">Time (s)</span>
@@ -318,7 +430,8 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         ref={audioRef}
         controls
         preload="metadata"
-        src={track.audio}
+        src={audioUrl}
+        data-audio-url={track.audio}
         aria-label={`${track.label} audio`}
         onLoadedMetadata={loadMetadata}
         onTimeUpdate={(event) => {
@@ -326,8 +439,11 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         }}
         onPlay={(event) => {
           setAudioError(false);
+          mediaCache.setBuffering(track.key, event.currentTarget.readyState < HTMLMediaElement.HAVE_FUTURE_DATA);
           onPlay(event.currentTarget);
         }}
+        onWaiting={() => mediaCache.setBuffering(track.key, true)}
+        onCanPlay={() => mediaCache.setBuffering(track.key, false)}
         onPause={(event) => pausePlayback(event.currentTarget)}
         onEnded={(event) => pausePlayback(event.currentTarget)}
         onError={(event) => {
@@ -420,11 +536,12 @@ function AnimatedSceneView({ mode, children }: { mode: SceneViewMode; children: 
 }
 
 /** 独立管理一个难度区域的场景、模式及指标状态。 */
-function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPosition, onPlay, onPause, onSceneChange }: SceneGroupProps) {
+function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPosition, onPlay, onPause, onSceneChange, onReloadScene }: SceneGroupProps) {
   const [selectedId, setSelectedId] = useState<SceneId>(split === "Easy" ? "easy-01" : "hard-01");
   const [detail, setDetail] = useState<SceneDetail | null>(null);
   const [showNonIntrusive, setShowNonIntrusive] = useState(false);
   const [viewMode, setViewMode] = useState<SceneViewMode>("audio");
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const contentRegionRef = useRef<HTMLDivElement>(null);
   const datasetTitle = split === "Easy" ? "2D-Spatialized Dataset (Easy)" : "3D-Spatialized Dataset (Hard)";
   const options = sceneOptions.filter((option) => option.id.startsWith(`${split.toLowerCase()}-`));
@@ -434,7 +551,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
   const selectedIndex = options.findIndex((option) => option.id === selectedId);
 
   useEffect(() => {
-    if ((!scene && !sceneError) || detail?.sceneId === selectedId) return;
+    if (!scene && !sceneError) return;
     const controller = new AbortController();
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let exitTimer: number;
@@ -442,22 +559,19 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
       exitTimer = window.setTimeout(resolve, reducedMotion ? 0 : 120);
     });
 
-    /** 并行准备指标和图像，淡出完成后一次性替换详情；忽略已取消的选择。 */
+    /** 只等待小型指标与短淡出，图片和音频由独立调度器准备。 */
     async function prepareDetail() {
       let nextDetail: SceneDetail;
       try {
         if (sceneError) throw new Error(sceneError);
         if (!scene) return;
-        const response = await fetch(sceneAssetUrl(selectedId, scene.enhancedMetricsFile), { signal: controller.signal });
-        if (!response.ok) throw new Error(`Quality metrics could not be loaded (${response.status}).`);
-        const rows = parseMetricsCsv(await response.text());
-        const tracks = buildTracks(scene, rows);
-        await Promise.all(tracks.map(async (track) => {
-          const image = new Image();
-          image.src = track.spectrogram;
-          await image.decode().catch(() => undefined);
-        }));
-        nextDetail = { sceneId: selectedId, scene, tracks };
+        const cached = detailCache.get(selectedId);
+        if (cached) nextDetail = cached;
+        else {
+          const rows = await loadMetrics(scene);
+          nextDetail = { sceneId: selectedId, scene, tracks: buildTracks(scene, rows) };
+          detailCache.set(selectedId, nextDetail);
+        }
       } catch (error: unknown) {
         if (controller.signal.aborted) return;
         nextDetail = { sceneId: selectedId, error: error instanceof Error ? error.message : "Quality metrics are unavailable." };
@@ -473,7 +587,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
       controller.abort();
       window.clearTimeout(exitTimer);
     };
-  }, [scene, sceneError, selectedId, detail?.sceneId]);
+  }, [scene, sceneError, selectedId, retryAttempt]);
 
   /** 切换本区域场景时暂停播放，并恢复指标的默认折叠状态。 */
   function selectScene(id: SceneId) {
@@ -490,6 +604,12 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
       contentRegionRef.current?.querySelectorAll("audio").forEach((audio) => audio.pause());
       setViewMode("internals");
     } else setViewMode("audio");
+  }
+
+  /** 分别重试失败的场景清单或指标请求，不反复显示过期错误。 */
+  function retryScene() {
+    if (sceneError) { setDetail(null); onReloadScene(selectedId); }
+    else setRetryAttempt((current) => current + 1);
   }
 
   return (
@@ -517,7 +637,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
       <div className="scene-detail-shell">
         <div className={`scene-detail${isSwitching ? " scene-detail--switching" : ""}`} aria-busy={isSwitching} inert={isSwitching}>
           {detail?.error ? (
-            <p className="scene-message scene-message--error" role="alert">{detail.error}</p>
+            <div className="scene-message scene-message--error" role="alert"><p>{detail.error}</p><button type="button" className="metric-toggle" onClick={retryScene}>Retry scene</button></div>
           ) : detail?.scene && detail.tracks ? (
             <>
               <div className={`scene-detail-heading${split === "Easy" ? " scene-detail-heading--with-internals" : ""}`}>
@@ -536,7 +656,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
                   )}
                   {split === "Easy" && (
                     <button type="button" className="primary-button internals-toggle" aria-pressed={viewMode === "internals"} aria-controls="easy-scene-content" onClick={toggleView}>
-                      {viewMode === "audio" ? "View Internals" : "Back to Audio"}
+                      {viewMode === "audio" ? "View Details" : "Back to Audio"}
                     </button>
                   )}
                 </div>
@@ -582,21 +702,37 @@ export default function AudioDemo() {
   const positions = useRef(new Map<string, number>());
 
   useEffect(() => {
-    const controller = new AbortController();
+    let live = true;
     for (const option of sceneOptions) {
-      fetch(sceneAssetUrl(option.id, "scene.json"), { signal: controller.signal })
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`Scene metadata could not be loaded (${response.status}).`);
-          const payload = parseScene(await response.json(), option.id);
-          setScenes((current) => ({ ...current, [option.id]: payload }));
-        })
+      loadScene(option.id)
+        .then((scene) => { if (live) setScenes((current) => ({ ...current, [option.id]: scene })); })
         .catch((error: unknown) => {
-          if (controller.signal.aborted) return;
+          if (!live) return;
           setSceneErrors((current) => ({ ...current, [option.id]: error instanceof Error ? error.message : "Scene metadata is unavailable." }));
         });
     }
-    return () => controller.abort();
+    return () => { live = false; };
   }, []);
+
+  useEffect(() => {
+    const defaults = ["easy-01", "hard-01"] as const;
+    const remaining = ["easy-02", "easy-03", "hard-02", "hard-03"] as const;
+    const resources = (ids: readonly SceneId[]) => ids.flatMap((id) => scenes[id] ? [sceneMedia(scenes[id]!)] : []);
+    const initial = resources(defaults);
+    const defaultsSettled = defaults.every((id) => scenes[id] || sceneErrors[id]);
+    if (!initial.length && !defaultsSettled) return;
+    const allSettled = sceneOptions.every((option) => scenes[option.id] || sceneErrors[option.id]);
+    const later = defaultsSettled ? resources(remaining) : [];
+    mediaCache.startPreload(initial.flatMap((scene) => scene.images), later.flatMap((scene) => scene.images), allSettled ? [...initial, ...later].flatMap((scene) => scene.audio) : []);
+  }, [scenes, sceneErrors]);
+
+  /** 重新读取失败的场景清单，保留其他场景已有数据与缓存。 */
+  function reloadScene(id: SceneId) {
+    setSceneErrors((current) => { const next = { ...current }; delete next[id]; return next; });
+    void loadScene(id, true)
+      .then((scene) => setScenes((current) => ({ ...current, [id]: scene })))
+      .catch((error: unknown) => setSceneErrors((current) => ({ ...current, [id]: error instanceof Error ? error.message : "Scene metadata is unavailable." })));
+  }
 
   /** 暂停上一音轨，确保两个区域之间同一时刻仅播放一条音频。 */
   function handlePlay(audio: HTMLAudioElement) {
@@ -627,8 +763,8 @@ export default function AudioDemo() {
 
   return (
     <div className="audio-demo">
-      <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} />
-      <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} />
+      <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />
+      <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
-// 使用居中论文首屏与深蓝标题；顶栏名称添加连字符，并与标签页共用语音波形图标。
+// 使用居中论文首屏与深蓝标题；顶栏词组留白，方法图采用无损网页图片映射。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
+import { optimizedImageUrl } from "./imageAssets";
 
 type MethodPanel = "coarse-extractor" | "tfgca-lgm" | null;
 
@@ -59,7 +60,7 @@ function MethodDialog({ panel, onClose, onPanelChange }: MethodDialogProps) {
         {panel === "coarse-extractor" ? (
           <div className="dialog-content">
             <div className="paper-figure paper-figure--detail">
-              <img src="./assets/paper/figure2-coarse-extractor.png" alt="Detailed architecture of the Coarse Extractor" />
+              <img src={optimizedImageUrl("./assets/paper/figure2-coarse-extractor.png")} alt="Detailed architecture of the Coarse Extractor" />
             </div>
             <button className="primary-button" type="button" onClick={() => onPanelChange("tfgca-lgm")}>
               Inspect TF-GCA and LGM
@@ -70,10 +71,10 @@ function MethodDialog({ panel, onClose, onPanelChange }: MethodDialogProps) {
           <div className="dialog-content">
             <div className="module-grid">
               <figure className="module-card" aria-label="Time-Frequency Gated Cross-Attention">
-                <img src="./assets/paper/figure3-tfgca.png" alt="Architecture of Time-Frequency Gated Cross-Attention" />
+                <img src={optimizedImageUrl("./assets/paper/figure3-tfgca.png")} alt="Architecture of Time-Frequency Gated Cross-Attention" />
               </figure>
               <figure className="module-card module-card--lgm" aria-label="Local Gated Mixer">
-                <img src="./assets/paper/figure3-lgm.png" alt="Architecture of the Local Gated Mixer" />
+                <img src={optimizedImageUrl("./assets/paper/figure3-lgm.png")} alt="Architecture of the Local Gated Mixer" />
               </figure>
             </div>
             <button className="text-button" type="button" onClick={() => onPanelChange("coarse-extractor")}>
@@ -96,7 +97,7 @@ export default function App() {
       <header className="site-header">
         <a className="brand" href="#top" aria-label="CORE-DSE Audio-Demo-Page home">
           <img className="brand-icon" src={`${import.meta.env.BASE_URL}favicon.svg`} width={28} height={28} alt="" aria-hidden="true" />
-          <span>CORE-DSE Audio-Demo-Page</span>
+          <span className="brand-text"><span>CORE-DSE</span>{" "}<span>Audio-Demo-Page</span></span>
         </a>
         <nav aria-label="Page sections">
           <a href="#abstract">Abstract</a>
@@ -108,9 +109,6 @@ export default function App() {
       <main id="top">
         <section className="hero" aria-labelledby="paper-title">
           <div className="hero-copy">
-            <div className="eyebrow-row">
-              <span className="eyebrow">ICASSP 2027 submission</span>
-            </div>
             <h1 id="paper-title">
               <span className="paper-name">CORE-DSE</span>{" "}
               <span className="paper-title-copy">Coarse Extraction and Refinement with Time-Frequency Gated Cross-Attention for Directional Speech Extraction</span>
@@ -155,7 +153,7 @@ export default function App() {
                 </button>
               </div>
               <div className="paper-figure paper-figure--overview">
-                <img src="./assets/paper/figure1-overview.png" alt="Overview of the CORE-DSE framework" />
+                <img src={optimizedImageUrl("./assets/paper/figure1-overview.png")} alt="Overview of the CORE-DSE framework" />
               </div>
             </div>
           </div>

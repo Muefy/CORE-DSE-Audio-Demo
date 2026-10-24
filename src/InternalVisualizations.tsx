@@ -1,8 +1,8 @@
 // Easy 内部分析视图：独立读取元数据，逐图加载，并提供带坐标的大图弹窗。
-// 注意力和掩码改为每图独立色条，语谱图不显示色条；精简分组标题并统一 head 名称。
-// 区域说明概括提取过程的可视化内容，详细实验来源继续保存于素材元数据。
-// 掩码与语谱图合并展示，在两个区域的图片下方补充与论文定义一致的图义说明。
+// 八图使用一个连续网格，不呈现色条；图后统一说明提取过程，来源与色标保留元数据校验。
+// PNG 与无损 WebP 共用资源映射，不改变原图内容、坐标或分析实验来源。
 import { useEffect, useId, useRef, useState } from "react";
+import { optimizedImageUrl } from "./imageAssets";
 
 interface ColorScale {
   min: number;
@@ -36,18 +36,15 @@ interface InternalMetadata {
 interface PlotView {
   title: string;
   filename: string;
-  scale: ColorScale;
-  scaleKind: "attention" | "mask" | "spectrogram";
 }
 
 const metadataCache = new Map<string, InternalMetadata>();
-const colorbarUrl = `${import.meta.env.BASE_URL}assets/inferno-colorbar.png`;
 
 /** 校验来源、轴范围和色标，拒绝错误实验或不完整的内部素材。 */
 function parseInternalMetadata(raw: unknown, sceneId: string, sampleId: string): InternalMetadata {
   const data = raw as InternalMetadata;
   const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
-  const filename = (value: unknown) => typeof value === "string" && /^[a-z0-9_]+\.png$/.test(value);
+  const filename = (value: unknown) => typeof value === "string" && /^[a-z0-9_]+\.(png|webp)$/.test(value);
   const range = (value: unknown, max: number) => Array.isArray(value) && value.length === 2 && value[0] === 0 && value[1] === max;
   const attention = data?.attention_color_scale;
   const mask = data?.mask_color_scale;
@@ -76,29 +73,6 @@ function parseInternalMetadata(raw: unknown, sceneId: string, sampleId: string):
     }
   }
   return data;
-}
-
-/** 为注意力或掩码单图呈现 inferno 色条，语谱图不显示色条。 */
-function PlotColorbar({ plot }: { plot: PlotView }) {
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  if (plot.scaleKind === "spectrogram") return null;
-  const { min, max } = plot.scale;
-  const values = [min, (min + max) / 2, max];
-  const format = (value: number) => plot.scaleKind === "mask" ? value.toFixed(3) : String(value);
-  const label = plot.scaleKind === "attention" ? "Attention weight" : "Mask magnitude";
-  return (
-    <div className="internal-colorbar" data-min={min} data-max={max} aria-label={`${plot.title}: ${label}, ${min} to ${max}`}>
-      {failed ? (
-        <div className="colorbar-error" role="alert">
-          <span>Colorbar could not be loaded.</span>
-          <button className="metric-toggle" type="button" aria-label={`Retry ${plot.title} colorbar`} onClick={() => { setFailed(false); setAttempt((current) => current + 1); }}>Retry colorbar</button>
-        </div>
-      ) : <img key={attempt} src={attempt ? `${colorbarUrl}?retry=${attempt}` : colorbarUrl} alt="" width={256} height={16} onError={() => setFailed(true)} />}
-      <div className="colorbar-ticks" aria-hidden="true">{values.map((value) => <span key={value}>{format(value)}</span>)}</div>
-      <span className="colorbar-label">{label}</span>
-    </div>
-  );
 }
 
 /** 在接近视口后请求单张图，保留固定比例并提供独立失败重试。 */
@@ -240,15 +214,14 @@ function PlotDialog({ selection, baseUrl, onClose }: {
       <div className="dialog-shell">
         <div className="dialog-topbar"><h2 id={titleId}>{selection.plot.title}</h2><button type="button" className="icon-button" aria-label="Close internal image" onClick={onClose}>×</button></div>
         <div className="dialog-content">
-          <StaticPlot plot={selection.plot} url={`${baseUrl}${selection.plot.filename}`} immediate />
-          <PlotColorbar plot={selection.plot} />
+          <StaticPlot plot={selection.plot} url={optimizedImageUrl(`${baseUrl}${selection.plot.filename}`)} immediate />
         </div>
       </div>
     </dialog>
   );
 }
 
-/** 按注意力及掩码／语谱图两组展示八张图，成功元数据在本次页面会话中复用。 */
+/** 连续展示八张提取过程图，成功元数据在本次页面会话中复用。 */
 export default function InternalVisualizations({ sceneId, sampleId }: { sceneId: string; sampleId: string }) {
   const [metadata, setMetadata] = useState<InternalMetadata | null>(() => metadataCache.get(sceneId) ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -278,39 +251,26 @@ export default function InternalVisualizations({ sceneId, sampleId }: { sceneId:
   if (error) return <div className="scene-message scene-message--error" role="alert"><p>{error}</p><button className="metric-toggle" type="button" aria-label="Retry internal metadata" onClick={() => setAttempt((current) => current + 1)}>Retry metadata</button></div>;
   if (!metadata) return <p className="scene-message" role="status">Loading internal analysis…</p>;
 
-  const groups: { title: string; description: string; plots: PlotView[] }[] = [
-    {
-      title: "TF-GCA Maps",
-      description: "The four spatial-branch maps visualize learned compatibility between the target direction and local inter-channel phase difference (IPD) features. Brighter colors indicate larger sigmoid gate values, which apply larger weights to the corresponding value features. Gates are computed independently at each time–frequency bin, while different heads learn complementary matching patterns without softmax competition across bins.",
-      plots: [0, 1, 2, 3].map((head) => ({ title: `TF-GCA Map Head-${head + 1}`, filename: metadata.plots.find((plot) => plot.branch === "spatial" && plot.head_index === head)!.filename, scale: metadata.attention_color_scale, scaleKind: "attention" })),
-    },
-    {
-      title: "Mask and Spectrogram Comparison",
-      description: "The CE-Probe mask is estimated by a trained 1×1 readout of frozen Coarse Extractor (CE) features, visualizing the coarse target representation. The Fine Enhancer (FE) refines the CE representation to suppress residual interference and restore speech detail; the CORE mask shows the full model’s final estimate. Both maps display complex-mask magnitudes on the same scale, and the spectrograms compare the clean reference with the enhanced output.",
-      plots: [
-        ...(["probe", "core"] as const).map((source): PlotView => ({ title: source === "probe" ? "CE-Probe magnitude mask" : "CORE magnitude mask", filename: metadata.plots.find((plot) => plot.kind === "complex_mask_magnitude" && plot.source === source)!.filename, scale: metadata.mask_color_scale, scaleKind: "mask" })),
-        ...(["clean", "enhanced"] as const).map((kind): PlotView => ({ title: kind === "clean" ? "Clean spectrogram" : "Enhanced spectrogram", filename: metadata.spectrograms[kind], scale: metadata.spectrogram_color_scale, scaleKind: "spectrogram" })),
-      ],
-    },
+  const plots: PlotView[] = [
+    ...[0, 1, 2, 3].map((head) => ({ title: `TF-GCA Map Head-${head + 1}`, filename: metadata.plots.find((plot) => plot.branch === "spatial" && plot.head_index === head)!.filename })),
+    ...(["probe", "core"] as const).map((source): PlotView => ({ title: source === "probe" ? "CE-Probe magnitude mask" : "CORE magnitude mask", filename: metadata.plots.find((plot) => plot.kind === "complex_mask_magnitude" && plot.source === source)!.filename })),
+    ...(["clean", "enhanced"] as const).map((kind): PlotView => ({ title: kind === "clean" ? "Clean spectrogram" : "Enhanced spectrogram", filename: metadata.spectrograms[kind] })),
   ];
 
   return (
     <section className="internal-view" aria-labelledby={`${sceneId}-internals-title`}>
-      <header className="internal-view-heading"><h4 id={`${sceneId}-internals-title`}>Inside CORE</h4><p>Visualizing CORE’s speech extraction process through TF-GCA maps, magnitude masks, and spectrograms.</p></header>
-      {groups.map((group) => (
-        <section className="internal-group" key={group.title} aria-label={group.title}>
-          <div className="internal-plot-grid">
-            {group.plots.map((plot) => (
-              <figure className="internal-plot-card" key={plot.filename}>
-                <h6>{plot.title}</h6>
-                <StaticPlot plot={plot} url={`${baseUrl}${plot.filename}`} onEnlarge={(opener) => setSelection({ plot, opener })} />
-                <PlotColorbar plot={plot} />
-              </figure>
-            ))}
-          </div>
-          <p className="internal-group-description">{group.description}</p>
-        </section>
-      ))}
+      <header className="internal-view-heading"><h4 id={`${sceneId}-internals-title`}>Visualization of the CORE Extraction Process</h4></header>
+      <div className="internal-group">
+        <div className="internal-plot-grid">
+          {plots.map((plot) => (
+            <figure className="internal-plot-card" key={plot.filename}>
+              <h6>{plot.title}</h6>
+              <StaticPlot plot={plot} url={optimizedImageUrl(`${baseUrl}${plot.filename}`)} onEnlarge={(opener) => setSelection({ plot, opener })} />
+            </figure>
+          ))}
+        </div>
+        <p className="internal-group-description">The four TF-GCA maps show how the target direction matches local spatial cues, with brighter regions indicating stronger gating. The CE-Probe and CORE magnitude masks visualize the coarse target representation and the final estimate after refinement, respectively. The clean and enhanced spectrograms provide a direct comparison between the reference speech and the extracted output.</p>
+      </div>
       {selection && <PlotDialog selection={selection} baseUrl={baseUrl} onClose={() => setSelection(null)} />}
     </section>
   );

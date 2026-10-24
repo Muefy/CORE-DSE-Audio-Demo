@@ -4,13 +4,13 @@
   "sampleId": "0523",
   "mixtureSpeakerCount": 3,
   "mixtureAudio": "noisy/0523_mic0.wav",
-  "mixtureSpectrogram": "noisy/0523_mic0_spectrogram.png",
+  "mixtureSpectrogram": "noisy/0523_mic0_spectrogram.webp",
   "target": {
     "azimuthDeg": -36.8764,
     "elevationDeg": -27.4279,
     "distanceM": 0.518,
     "cleanAudio": "clean/0523.wav",
-    "cleanSpectrogram": "clean/0523_spectrogram.png"
+    "cleanSpectrogram": "clean/0523_spectrogram.webp"
   },
   "acousticConditions": {
     "noise": {
@@ -33,13 +33,13 @@
       "id": "TF",
       "label": "TF-GridNet-CORE",
       "audio": "enhanced/0523_enhanced_TF.wav",
-      "spectrogram": "enhanced/0523_enhanced_TF_spectrogram.png"
+      "spectrogram": "enhanced/0523_enhanced_TF_spectrogram.webp"
     },
     {
       "id": "SP",
       "label": "SpatialNet-CORE",
       "audio": "enhanced/0523_enhanced_SP.wav",
-      "spectrogram": "enhanced/0523_enhanced_SP_spectrogram.png"
+      "spectrogram": "enhanced/0523_enhanced_SP_spectrogram.webp"
     }
   ]
 }

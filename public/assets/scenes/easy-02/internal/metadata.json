@@ -45,8 +45,8 @@
     "reference": "joint magnitudes of core and probe"
   },
   "spectrograms": {
-    "clean": "clean_spectrogram.png",
-    "enhanced": "enhanced_spectrogram.png"
+    "clean": "clean_spectrogram.webp",
+    "enhanced": "enhanced_spectrogram.webp"
   },
   "spectrogram_color_scale": {
     "min": -80.0,
@@ -96,7 +96,7 @@
   },
   "plots": [
     {
-      "filename": "spatial_gate_head_0.png",
+      "filename": "spatial_gate_head_0.webp",
       "source": "core",
       "kind": "tf_gca_gate",
       "branch": "spatial",
@@ -106,7 +106,7 @@
       "max": 1.0
     },
     {
-      "filename": "spatial_gate_head_1.png",
+      "filename": "spatial_gate_head_1.webp",
       "source": "core",
       "kind": "tf_gca_gate",
       "branch": "spatial",
@@ -116,7 +116,7 @@
       "max": 1.0
     },
     {
-      "filename": "spatial_gate_head_2.png",
+      "filename": "spatial_gate_head_2.webp",
       "source": "core",
       "kind": "tf_gca_gate",
       "branch": "spatial",
@@ -126,7 +126,7 @@
       "max": 1.0
     },
     {
-      "filename": "spatial_gate_head_3.png",
+      "filename": "spatial_gate_head_3.webp",
       "source": "core",
       "kind": "tf_gca_gate",
       "branch": "spatial",
@@ -136,28 +136,28 @@
       "max": 1.0
     },
     {
-      "filename": "complex_mask_magnitude_probe.png",
+      "filename": "complex_mask_magnitude_probe.webp",
       "source": "probe",
       "kind": "complex_mask_magnitude",
       "min": 0.0,
       "max": 1.211958885192871
     },
     {
-      "filename": "complex_mask_magnitude.png",
+      "filename": "complex_mask_magnitude.webp",
       "source": "core",
       "kind": "complex_mask_magnitude",
       "min": 0.0,
       "max": 1.211958885192871
     },
     {
-      "filename": "clean_spectrogram.png",
+      "filename": "clean_spectrogram.webp",
       "source": "clean",
       "kind": "spectrogram",
       "min": -80.0,
       "max": 0.0
     },
     {
-      "filename": "enhanced_spectrogram.png",
+      "filename": "enhanced_spectrogram.webp",
       "source": "enhanced",
       "kind": "spectrogram",
       "min": -80.0,
