@@ -1,0 +1,125 @@
+{
+  "id": "real1",
+  "durationS": 15,
+  "sampleRateHz": 16000,
+  "mixture": {
+    "audio": "noisy/3P_13_A_seg02_mic0.wav",
+    "spectrogram": "noisy/3P_13_A_seg02_mic0_spectrogram.webp"
+  },
+  "speakers": [
+    {
+      "id": "ID1",
+      "index": 1,
+      "azimuthDeg": 100.9,
+      "elevationDeg": 9.9,
+      "distanceM": 4.64,
+      "transcript": "...竟想拿脸盆给我喂水。拿脸盆时，才在毛巾下面刷牙缸。我一边喝水，一边用颤着的手指在白床单上抚摸。床单有凸起的花纹，白得有些晃眼。我想，自己正没有床单...",
+      "nearField": {
+        "audio": "clean/3P_CN_13_ID1_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID1_seg02_spectrogram.webp"
+      },
+      "farField": {
+        "audio": "clean/3P_CN_13_ID1_early_ref_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID1_early_ref_seg02_spectrogram.webp"
+      },
+      "withoutCe": {
+        "audio": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID1.wav",
+        "spectrogram": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.2722
+        }
+      },
+      "withCe": {
+        "audio": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID1.wav",
+        "spectrogram": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.4926
+        }
+      }
+    },
+    {
+      "id": "ID2",
+      "index": 2,
+      "azimuthDeg": 69.1,
+      "elevationDeg": 25.1,
+      "distanceM": 4.79,
+      "transcript": "...其实我只到过这陋巷里三次，不过这三次的印象都很清楚，现在都写得出来。第一次我到这陋巷里，是近二十年前的事。那时我只十七八岁，正在杭州的师范学校里读书。我的艺术课...",
+      "nearField": {
+        "audio": "clean/3P_CN_13_ID2_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID2_seg02_spectrogram.webp"
+      },
+      "farField": {
+        "audio": "clean/3P_CN_13_ID2_early_ref_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID2_early_ref_seg02_spectrogram.webp"
+      },
+      "withoutCe": {
+        "audio": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID2.wav",
+        "spectrogram": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.3726
+        }
+      },
+      "withCe": {
+        "audio": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID2.wav",
+        "spectrogram": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.4751
+        }
+      }
+    },
+    {
+      "id": "ID3",
+      "index": 3,
+      "azimuthDeg": 47.0,
+      "elevationDeg": 0.0,
+      "distanceM": 2.72,
+      "transcript": "...有一回居然挡住了火车。开车的还有山上的人帮着，吆喝了半天，才将它们哄走。但是谁也没有着急，只微微一笑就算了。山高五千九百零五英尺，顶上一块不大的...",
+      "nearField": {
+        "audio": "clean/3P_CN_13_ID3_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID3_seg02_spectrogram.webp"
+      },
+      "farField": {
+        "audio": "clean/3P_CN_13_ID3_early_ref_seg02.wav",
+        "spectrogram": "clean/3P_CN_13_ID3_early_ref_seg02_spectrogram.webp"
+      },
+      "withoutCe": {
+        "audio": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID3.wav",
+        "spectrogram": "enhanced_without_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.7384
+        }
+      },
+      "withCe": {
+        "audio": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID3.wav",
+        "spectrogram": "enhanced_with_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.webp",
+        "metrics": {
+          "P808_MOS": 3.7661
+        }
+      }
+    }
+  ],
+  "spectrogramSettings": {
+    "nFft": 512,
+    "hopLength": 256,
+    "window": "periodic Hann",
+    "centered": true,
+    "padding": "constant",
+    "colormap": "inferno",
+    "dbMin": -80.0,
+    "dbMax": 0.0,
+    "reference": "mixture mic 0 STFT magnitude peak",
+    "referencePeak": 29.30659294128418,
+    "frequencyRangeHz": [
+      0,
+      8000
+    ],
+    "timeRangeS": [
+      0,
+      15
+    ],
+    "imageSizePx": [
+      1200,
+      493
+    ]
+  }
+}

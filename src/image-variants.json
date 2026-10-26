@@ -56,5 +56,18 @@
   "assets/scenes/hard-03/clean/0245_spectrogram.png": "assets/scenes/hard-03/clean/0245_spectrogram.webp",
   "assets/scenes/hard-03/enhanced/0245_enhanced_SP_spectrogram.png": "assets/scenes/hard-03/enhanced/0245_enhanced_SP_spectrogram.webp",
   "assets/scenes/hard-03/enhanced/0245_enhanced_TF_spectrogram.png": "assets/scenes/hard-03/enhanced/0245_enhanced_TF_spectrogram.webp",
-  "assets/scenes/hard-03/noisy/0245_mic0_spectrogram.png": "assets/scenes/hard-03/noisy/0245_mic0_spectrogram.webp"
+  "assets/scenes/hard-03/noisy/0245_mic0_spectrogram.png": "assets/scenes/hard-03/noisy/0245_mic0_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID1_early_ref_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID1_early_ref_seg02_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID1_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID1_seg02_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID2_early_ref_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID2_early_ref_seg02_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID2_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID2_seg02_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID3_early_ref_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID3_early_ref_seg02_spectrogram.webp",
+  "assets/scenes/real1/clean/3P_CN_13_ID3_seg02_spectrogram.png": "assets/scenes/real1/clean/3P_CN_13_ID3_seg02_spectrogram.webp",
+  "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.png": "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.webp",
+  "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.png": "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.webp",
+  "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.png": "assets/scenes/real1/enhanced_with_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.webp",
+  "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.png": "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID1_spectrogram.webp",
+  "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.png": "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID2_spectrogram.webp",
+  "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.png": "assets/scenes/real1/enhanced_without_ce/3P_13_A_seg02_enhanced_ID3_spectrogram.webp",
+  "assets/scenes/real1/noisy/3P_13_A_seg02_mic0_spectrogram.png": "assets/scenes/real1/noisy/3P_13_A_seg02_mic0_spectrogram.webp"
 }

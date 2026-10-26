@@ -1,12 +1,18 @@
-// 按论文数据集分区试听：切换只等待小型指标文件，语谱图独立加载与重试。
-// 默认场景提前准备，其他试听图片与原始 WAV 分阶段预取，缓存复访数据。
-// 保留原生播放器、独立进度、互斥播放、语谱图跳转和 Easy 内部分析模式。
+// 实录与仿真分区试听：实录使用十五秒轴，仿真使用十秒轴，图片独立加载与重试。
+// 三个区域共享原生播放器、独立进度、互斥播放和分阶段媒体预取。
+// 实录增强卡仅展示 P808_MOS；仿真保留原指标和 Easy 内部分析模式。
+// 三个区域默认折叠且互斥展开，首开才加载；收起保留状态，锚点入口自动展开目标。
+// 展开后等待布局稳定再将区域标题对齐导航栏下方，用户主动滚动时停止自动定位。
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import InternalVisualizations from "./InternalVisualizations";
+import RealRecordings, { loadRealRecording, realRecordingMedia, type RealRecording } from "./RealRecordings";
 import { optimizedImageUrl } from "./imageAssets";
 import { mediaCache } from "./mediaCache";
 
 type SceneViewMode = "audio" | "internals";
+const demoSectionIds = ["real-recordings", "easy-samples", "hard-samples"] as const;
+type DemoSectionId = (typeof demoSectionIds)[number];
+const closedSections: Record<DemoSectionId, boolean> = { "real-recordings": false, "easy-samples": false, "hard-samples": false };
 
 const sceneOptions = [
   { id: "easy-01", label: "Easy 01" },
@@ -59,6 +65,9 @@ interface Track {
   audio: string;
   spectrogram: string;
   metrics?: MetricRow;
+  durationS?: number;
+  accessibilityLabel?: string;
+  p808Mos?: number;
 }
 
 interface SceneDetail {
@@ -95,6 +104,18 @@ const metricsRequests = new Map<string, Promise<Record<string, MetricRow>>>();
 const detailCache = new Map<SceneId, SceneDetail>();
 const sceneCache = new Map<SceneId, Scene>();
 const sceneRequests = new Map<SceneId, Promise<Scene>>();
+
+/** 将仿真场景映射到对应的折叠区域。 */
+function simulationSectionId(id: SceneId): DemoSectionId {
+  return id.startsWith("easy") ? "easy-samples" : "hard-samples";
+}
+
+/** 收起区域时暂停音轨并关闭内部大图，保留进度和视图状态且释放模态焦点。 */
+function deactivateSection(id: DemoSectionId): void {
+  const section = document.getElementById(id);
+  section?.querySelectorAll("audio").forEach((audio) => audio.pause());
+  section?.querySelectorAll<HTMLDialogElement>("dialog[open]").forEach((dialog) => dialog.close());
+}
 
 /** 依据 Vite 基路径拼接可在本地和子路径部署下使用的资产地址。 */
 function sceneAssetUrl(sceneId: SceneId, relativePath: string): string {
@@ -333,6 +354,8 @@ function AcousticConditions({ scene }: { scene: Scene }) {
 
 /** 绘制当前音轨的音频控件、可跳转语谱图与可用指标。 */
 function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, onPlay, onPause }: TrackCardProps) {
+  const durationS = track.durationS ?? 10;
+  const accessibilityLabel = track.accessibilityLabel ?? track.label;
   const audioRef = useRef<HTMLAudioElement>(null);
   const pendingSeekRef = useRef<number | null>(savedPosition(track.key));
   const [position, setPosition] = useState(() => savedPosition(track.key));
@@ -362,7 +385,7 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   /** 将鼠标或键盘指定的时间应用到对应音频。 */
   function seekTo(seconds: number) {
     const audio = audioRef.current;
-    const availableDuration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 10;
+    const availableDuration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? Math.min(audio.duration, durationS) : durationS;
     const nextPosition = Math.max(0, Math.min(availableDuration, seconds));
     pendingSeekRef.current = nextPosition;
     if (audio && audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
@@ -386,12 +409,12 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
   }
 
   return (
-    <article className={`audio-track-card${track.label.includes("CORE") ? " audio-track-card--core" : ""}`}>
+    <article className={`audio-track-card${track.label.includes("CORE") ? " audio-track-card--core" : ""}`} data-track-key={track.key}>
       <div className="audio-track-heading">
         <h5>{track.label}</h5>
       </div>
 
-      <div className="spectrogram" aria-label={`${track.label} spectrogram, 0 to 10 seconds and 0 to 8 kilohertz`}>
+      <div className="spectrogram" aria-label={`${accessibilityLabel} spectrogram, 0 to ${durationS} seconds and 0 to 8 kilohertz`}>
         <span className="frequency-label" aria-hidden="true">Frequency (kHz)</span>
         <div className="frequency-axis" aria-hidden="true"><span>8</span><span>4</span><span>0</span></div>
         <div className="spectrogram-main">
@@ -400,29 +423,29 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
               data-image-url={track.spectrogram}
               role="slider"
               tabIndex={0}
-              aria-label={`Seek ${track.label} audio`}
+              aria-label={`Seek ${accessibilityLabel} audio`}
               aria-valuemin={0}
-              aria-valuemax={10}
-              aria-valuenow={Math.min(10, Number(position.toFixed(1)))}
+              aria-valuemax={durationS}
+              aria-valuenow={Math.min(durationS, Number(position.toFixed(1)))}
               aria-valuetext={`${position.toFixed(1)} seconds`}
               onClick={(event) => {
                 const bounds = event.currentTarget.getBoundingClientRect();
-                seekTo(((event.clientX - bounds.left) / bounds.width) * 10);
+                seekTo(((event.clientX - bounds.left) / bounds.width) * durationS);
               }}
               onKeyDown={(event) => {
                 if (event.key === "ArrowRight" || event.key === "ArrowUp") seekTo(position + 1);
                 else if (event.key === "ArrowLeft" || event.key === "ArrowDown") seekTo(position - 1);
                 else if (event.key === "Home") seekTo(0);
-                else if (event.key === "End") seekTo(10);
+                else if (event.key === "End") seekTo(durationS);
                 else return;
                 event.preventDefault();
               }}
             >
-              <AudioSpectrogramImage url={track.spectrogram} label={track.label} onReady={() => setImageLoaded(true)} />
-              {imageLoaded && <span className="spectrogram-cursor" style={{ left: `${Math.min(100, Math.max(0, position * 10))}%` }} aria-hidden="true" />}
+              <AudioSpectrogramImage url={track.spectrogram} label={accessibilityLabel} onReady={() => setImageLoaded(true)} />
+              {imageLoaded && <span className="spectrogram-cursor" style={{ left: `${Math.min(100, Math.max(0, position / durationS * 100))}%` }} aria-hidden="true" />}
             </div>
         </div>
-        <div className="time-axis" aria-hidden="true"><span>0</span><span>5</span><span>10</span></div>
+        <div className="time-axis" aria-hidden="true"><span>0</span><span>{durationS / 2}</span><span>{durationS}</span></div>
         <span className="time-caption" aria-hidden="true">Time (s)</span>
       </div>
 
@@ -432,7 +455,7 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         preload="metadata"
         src={audioUrl}
         data-audio-url={track.audio}
-        aria-label={`${track.label} audio`}
+        aria-label={`${accessibilityLabel} audio`}
         onLoadedMetadata={loadMetadata}
         onTimeUpdate={(event) => {
           if (pendingSeekRef.current === null) updatePosition(event.currentTarget.currentTime);
@@ -452,6 +475,14 @@ function TrackCard({ track, showNonIntrusive, savedPosition, rememberPosition, o
         }}
       />
       {audioError && <p className="asset-error" role="alert">Audio unavailable for this track.</p>}
+
+      {track.p808Mos !== undefined && (
+        <div className="metric-area">
+          <dl className="metric-grid metric-grid--single">
+            <div><dt>P808_MOS</dt><dd>{track.p808Mos.toFixed(2)}</dd></div>
+          </dl>
+        </div>
+      )}
 
       {track.metrics && (
         <div className="metric-area">
@@ -535,6 +566,30 @@ function AnimatedSceneView({ mode, children }: { mode: SceneViewMode; children: 
   );
 }
 
+/** 使用可键盘操作的标题按钮展开区域，收起后保留已挂载内容的状态。 */
+function CollapsibleDemoSection({ id, title, open, onToggle, className = "", children }: {
+  id: DemoSectionId;
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`scene-group ${className}`.trim()} id={id} aria-labelledby={`${id}-title`}>
+      <h3 className="scene-group-title" id={`${id}-title`}>
+        <button className="demo-section-toggle" type="button" aria-expanded={open} aria-controls={`${id}-panel`} onClick={onToggle}>
+          <span>{title}</span>
+          <svg className="demo-section-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      </h3>
+      <div className={`demo-section-panel${open ? " demo-section-panel--open" : ""}`} id={`${id}-panel`} data-open={open} role="region" aria-labelledby={`${id}-title`} aria-hidden={!open} inert={!open}>
+        <div className="demo-section-panel-inner">{children}</div>
+      </div>
+    </section>
+  );
+}
+
 /** 独立管理一个难度区域的场景、模式及指标状态。 */
 function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPosition, onPlay, onPause, onSceneChange, onReloadScene }: SceneGroupProps) {
   const [selectedId, setSelectedId] = useState<SceneId>(split === "Easy" ? "easy-01" : "hard-01");
@@ -543,7 +598,6 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
   const [viewMode, setViewMode] = useState<SceneViewMode>("audio");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const contentRegionRef = useRef<HTMLDivElement>(null);
-  const datasetTitle = split === "Easy" ? "2D-Spatialized Dataset (Easy)" : "3D-Spatialized Dataset (Hard)";
   const options = sceneOptions.filter((option) => option.id.startsWith(`${split.toLowerCase()}-`));
   const scene = scenes[selectedId];
   const sceneError = sceneErrors[selectedId];
@@ -613,8 +667,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
   }
 
   return (
-    <section className="scene-group" aria-labelledby={`${split.toLowerCase()}-scenes-title`}>
-      <h3 className="scene-group-title" id={`${split.toLowerCase()}-scenes-title`}>{datasetTitle}</h3>
+    <div className="scene-group-content">
       <div className="scene-picker" role="group" aria-label={`Choose a ${split.toLowerCase()} audio scene`}>
         <span className="scene-picker-indicator" style={{ transform: `translateX(calc(${selectedIndex * 100}% + ${selectedIndex * 4}px))` }} aria-hidden="true" />
         {options.map((option) => {
@@ -690,41 +743,177 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
           <p className={`scene-message scene-loading${detail ? " scene-loading--overlay" : ""}`} role="status">Loading audio scene…</p>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 
-/** 加载场景元数据，并在两个试听区域之间共享互斥播放与进度。 */
+/** 独立加载实录和仿真清单，在三个区域之间共享播放与媒体调度。 */
 export default function AudioDemo() {
+  const [openSections, setOpenSections] = useState(closedSections);
+  const [visitedSections, setVisitedSections] = useState(closedSections);
   const [scenes, setScenes] = useState<Partial<Record<SceneId, Scene>>>({});
   const [sceneErrors, setSceneErrors] = useState<Partial<Record<SceneId, string>>>({});
+  const [recording, setRecording] = useState<RealRecording>();
+  const [recordingError, setRecordingError] = useState<string>();
   const activeAudio = useRef<HTMLAudioElement | null>(null);
   const positions = useRef(new Map<string, number>());
 
+  useLayoutEffect(() => {
+    const id = demoSectionIds.find((sectionId) => openSections[sectionId]);
+    const section = id ? document.getElementById(id) : null;
+    const demo = section?.parentElement;
+    if (!section || !demo) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let stopped = false;
+    let frame: number | undefined;
+    let scrollTimer: number | undefined;
+    let deadline: number | undefined;
+    const observer = new ResizeObserver(scheduleAlignment);
+
+    /** 完成定位或收到用户操作后释放临时观察，不干扰后续试听与阅读。 */
+    function stopAlignment() {
+      stopped = true;
+      observer.disconnect();
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(deadline);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      window.removeEventListener("wheel", stopAlignment);
+      window.removeEventListener("touchmove", stopAlignment);
+      window.removeEventListener("pointerdown", stopAlignment);
+      window.removeEventListener("keydown", cancelForScrollKey);
+    }
+
+    /** 用户使用滚动按键时取消尚未发生的自动定位。 */
+    function cancelForScrollKey(event: KeyboardEvent) {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) stopAlignment();
+    }
+
+    /** 在浏览器完成两轮布局后，以固定导航栏和锚点偏移共同确定标题位置。 */
+    function alignSection() {
+      if (stopped) return;
+      observer.disconnect();
+      window.clearTimeout(scrollTimer);
+      frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => {
+          if (stopped || !section) return;
+          const headerBottom = document.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
+          const offset = Math.max(headerBottom + 12, Number.parseFloat(getComputedStyle(section).scrollMarginTop) || 0);
+          const top = Math.max(0, window.scrollY + section.getBoundingClientRect().top - offset);
+          window.scrollTo({ top, behavior: reduced ? "instant" : "smooth" });
+          stopAlignment();
+        });
+      });
+    }
+
+    /** 折叠和异步详情改变高度时重新等待，避免沿用旧文档高度计算滚动位置。 */
+    function scheduleAlignment() {
+      if (stopped) return;
+      window.clearTimeout(scrollTimer);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      scrollTimer = window.setTimeout(alignSection, reduced ? 0 : 80);
+    }
+
+    observer.observe(demo);
+    scheduleAlignment();
+    deadline = window.setTimeout(alignSection, 1200);
+    window.addEventListener("wheel", stopAlignment, { passive: true });
+    window.addEventListener("touchmove", stopAlignment, { passive: true });
+    window.addEventListener("pointerdown", stopAlignment, { passive: true });
+    window.addEventListener("keydown", cancelForScrollKey);
+    return stopAlignment;
+  }, [openSections]);
+
+  useEffect(() => {
+
+    /** 自动收起其他区域并展开锚点目标，滚动由统一的布局定位逻辑处理。 */
+    function revealSection(id: DemoSectionId) {
+      demoSectionIds.filter((other) => other !== id).forEach(deactivateSection);
+      setVisitedSections((current) => current[id] ? current : { ...current, [id]: true });
+      setOpenSections({ ...closedSections, [id]: true });
+    }
+
+    /** 直接链接和浏览器历史导航均展开其指向的试听区域。 */
+    function followHash() {
+      const id = window.location.hash.slice(1);
+      if (demoSectionIds.includes(id as DemoSectionId)) revealSection(id as DemoSectionId);
+    }
+
+    /** 页首入口即使重复点击相同锚点，也能重新展开已收起的区域。 */
+    function followSectionLink(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      const href = link?.getAttribute("href");
+      if (!href?.startsWith("#") || !demoSectionIds.includes(href.slice(1) as DemoSectionId)) return;
+      event.preventDefault();
+      if (window.location.hash !== href) window.history.pushState(null, "", href);
+      revealSection(href.slice(1) as DemoSectionId);
+    }
+
+    followHash();
+    window.addEventListener("hashchange", followHash);
+    document.addEventListener("click", followSectionLink);
+    return () => {
+      window.removeEventListener("hashchange", followHash);
+      document.removeEventListener("click", followSectionLink);
+    };
+  }, []);
+
   useEffect(() => {
     let live = true;
+    if (visitedSections["real-recordings"]) {
+      loadRealRecording()
+        .then((value) => { if (live) { setRecording(value); setRecordingError(undefined); } })
+        .catch((error: unknown) => { if (live) setRecordingError(error instanceof Error ? error.message : "Real recording metadata is unavailable."); });
+    }
     for (const option of sceneOptions) {
+      if (!visitedSections[simulationSectionId(option.id)]) continue;
       loadScene(option.id)
-        .then((scene) => { if (live) setScenes((current) => ({ ...current, [option.id]: scene })); })
+        .then((scene) => {
+          if (!live) return;
+          setScenes((current) => ({ ...current, [option.id]: scene }));
+          setSceneErrors((current) => {
+            if (!current[option.id]) return current;
+            const next = { ...current };
+            delete next[option.id];
+            return next;
+          });
+        })
         .catch((error: unknown) => {
           if (!live) return;
           setSceneErrors((current) => ({ ...current, [option.id]: error instanceof Error ? error.message : "Scene metadata is unavailable." }));
         });
     }
     return () => { live = false; };
-  }, []);
+  }, [visitedSections]);
 
   useEffect(() => {
-    const defaults = ["easy-01", "hard-01"] as const;
-    const remaining = ["easy-02", "easy-03", "hard-02", "hard-03"] as const;
+    if (!demoSectionIds.some((id) => visitedSections[id])) return;
+    const defaults = (["easy-01", "hard-01"] as const).filter((id) => visitedSections[simulationSectionId(id)]);
+    const remaining = (["easy-02", "easy-03", "hard-02", "hard-03"] as const).filter((id) => visitedSections[simulationSectionId(id)]);
     const resources = (ids: readonly SceneId[]) => ids.flatMap((id) => scenes[id] ? [sceneMedia(scenes[id]!)] : []);
-    const initial = resources(defaults);
-    const defaultsSettled = defaults.every((id) => scenes[id] || sceneErrors[id]);
+    const initial = [...(visitedSections["real-recordings"] && recording ? [realRecordingMedia(recording)] : []), ...resources(defaults)];
+    const recordingSettled = !visitedSections["real-recordings"] || Boolean(recording || recordingError);
+    const defaultsSettled = recordingSettled && defaults.every((id) => scenes[id] || sceneErrors[id]);
     if (!initial.length && !defaultsSettled) return;
-    const allSettled = sceneOptions.every((option) => scenes[option.id] || sceneErrors[option.id]);
+    const allSettled = recordingSettled && sceneOptions.filter((option) => visitedSections[simulationSectionId(option.id)]).every((option) => scenes[option.id] || sceneErrors[option.id]);
     const later = defaultsSettled ? resources(remaining) : [];
     mediaCache.startPreload(initial.flatMap((scene) => scene.images), later.flatMap((scene) => scene.images), allSettled ? [...initial, ...later].flatMap((scene) => scene.audio) : []);
-  }, [scenes, sceneErrors]);
+  }, [scenes, sceneErrors, recording, recordingError, visitedSections]);
+
+  /** 打开新区时收起并暂停旧区，同一区域再次点击则全部收起。 */
+  function toggleSection(id: DemoSectionId) {
+    demoSectionIds.forEach(deactivateSection);
+    setVisitedSections((current) => current[id] ? current : { ...current, [id]: true });
+    setOpenSections((current) => current[id] ? closedSections : { ...closedSections, [id]: true });
+  }
+
+  /** 单独重试实录清单，不影响仿真场景及已经缓存的媒体。 */
+  function reloadRecording() {
+    setRecordingError(undefined);
+    void loadRealRecording(true)
+      .then(setRecording)
+      .catch((error: unknown) => setRecordingError(error instanceof Error ? error.message : "Real recording metadata is unavailable."));
+  }
 
   /** 重新读取失败的场景清单，保留其他场景已有数据与缓存。 */
   function reloadScene(id: SceneId) {
@@ -734,7 +923,7 @@ export default function AudioDemo() {
       .catch((error: unknown) => setSceneErrors((current) => ({ ...current, [id]: error instanceof Error ? error.message : "Scene metadata is unavailable." })));
   }
 
-  /** 暂停上一音轨，确保两个区域之间同一时刻仅播放一条音频。 */
+  /** 暂停上一音轨，确保三个区域之间同一时刻仅播放一条音频。 */
   function handlePlay(audio: HTMLAudioElement) {
     if (activeAudio.current && activeAudio.current !== audio) activeAudio.current.pause();
     activeAudio.current = audio;
@@ -763,8 +952,17 @@ export default function AudioDemo() {
 
   return (
     <div className="audio-demo">
-      <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />
-      <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />
+      <CollapsibleDemoSection id="real-recordings" title="Real Recordings" className="real-recordings" open={openSections["real-recordings"]} onToggle={() => toggleSection("real-recordings")}>
+        {visitedSections["real-recordings"] && <RealRecordings recording={recording} error={recordingError} onRetry={reloadRecording} renderTrack={(track) => (
+          <TrackCard track={track} showNonIntrusive={false} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} />
+        )} />}
+      </CollapsibleDemoSection>
+      <CollapsibleDemoSection id="easy-samples" title="Simulated (Easy)" open={openSections["easy-samples"]} onToggle={() => toggleSection("easy-samples")}>
+        {visitedSections["easy-samples"] && <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />}
+      </CollapsibleDemoSection>
+      <CollapsibleDemoSection id="hard-samples" title="Simulated (Hard)" open={openSections["hard-samples"]} onToggle={() => toggleSection("hard-samples")}>
+        {visitedSections["hard-samples"] && <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />}
+      </CollapsibleDemoSection>
     </div>
   );
 }

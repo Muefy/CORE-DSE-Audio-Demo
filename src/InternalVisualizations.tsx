@@ -1,6 +1,7 @@
 // Easy 内部分析视图：独立读取元数据，逐图加载，并提供带坐标的大图弹窗。
 // 八图使用一个连续网格，不呈现色条；图后统一说明提取过程，来源与色标保留元数据校验。
 // PNG 与无损 WebP 共用资源映射，不改变原图内容、坐标或分析实验来源。
+// 区域收起导致原生弹窗关闭时，同步清空选中图片并释放模态焦点。
 import { useEffect, useId, useRef, useState } from "react";
 import { optimizedImageUrl } from "./imageAssets";
 
@@ -208,6 +209,7 @@ function PlotDialog({ selection, baseUrl, onClose }: {
       className="method-dialog internal-dialog"
       aria-labelledby={titleId}
       onKeyDown={keepFocus}
+      onClose={(event) => { if (!event.currentTarget.open) onClose(); }}
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
