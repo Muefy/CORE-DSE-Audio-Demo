@@ -1,12 +1,5 @@
 # CORE-DSE: Coarse Extraction and Refinement with Time-Frequency Gated Cross-Attention for Directional Speech Extraction
 
-**Yifei Yang\*, Wentao Hua\*, Jizhe Lu, Leyan Yang, Jun Gao, Yuxiang Hu, Changbao Zhu, and Jing Lu**
-
-- Key Laboratory of Modern Acoustics, Nanjing University, Nanjing, China
-- NJU-Horizon Intelligent Audio Lab, Horizon Robotics, Beijing, China
-
-\* Equal contribution.
-
 **[Listen to the Audio Demo](https://muefy.github.io/CORE-DSE-Audio-Demo/)**
 
 This repository accompanies the CORE-DSE paper with audio comparisons, spectrograms, and visualizations of the speech extraction process.
@@ -26,13 +19,3 @@ Direction of arrival (DOA) is a natural cue for multichannel directional speech 
 All models used for the real recording were trained on the simulated datasets described in the paper, without fine-tuning on real recordings. The far-field reference is obtained by projecting the close-talking speech onto the reference microphone using a 50 ms FIR filter; it serves as the extraction target. Data collection is ongoing, and further details will be presented in future work.
 
 The simulated samples report PESQ, ESTOI, and SI-SDR for the enhanced outputs, with DNSMOS scores available through **Show DNSMOS**. The real recording reports **P808_MOS** for each enhanced output. Spectrograms can be clicked to seek within the corresponding audio track.
-
-## Method and Visualizations
-
-The [method overview](https://muefy.github.io/CORE-DSE-Audio-Demo/#method) presents the CORE-DSE architecture and the TF-GCA and LGM modules.
-
-For each Easy sample, **View Details** opens four TF-GCA maps, the CE-only and CORE output masks, and the clean and CORE output speech spectrograms. The TF-GCA maps show head-specific matching between the target direction and local spatial cues. The output masks illustrate the coarse target representation and the final estimate after refinement. These visualizations use a separate CE-Probe analysis experiment rather than the ID 9 audio model.
-
-## Contact
-
-For questions about this work, please contact [Jing Lu](mailto:lujing@nju.edu.cn).
