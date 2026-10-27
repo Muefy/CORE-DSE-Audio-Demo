@@ -1,5 +1,5 @@
 /* 深蓝语音波形标识统一顶栏与标签页；保留指标间距、原生播放器及场景切换动效。 */
-/* Easy 内部八图连续排列，移除色条与中间分隔，统一图义说明放在网格下方。 */
+/* Easy 内部八图连续排列，移除色条与中间分隔，图义说明在网格上方使用实录同款文本框。 */
 /* 语谱图和内部热力图使用矩形，外层卡片和按钮保留圆角；顶栏词组增加间距。 */
 /* 试听图保留固定比例占位并逐图淡入，错误重试只作用于当前卡片。 */
 /* 实录采用两行四路对照，前两位距离红色加粗，with CE 标题深蓝加粗，增强结果仅展示 P808_MOS。 */
@@ -21,7 +21,7 @@
   --line: #dde5ec;
   --accent: #426e9a;
   --accent-soft: #edf3fa;
-  --core: #000000;
+  --core: #234f7d;
   --shadow: 0 4px 20px rgba(21, 37, 54, 0.035);
 }
 
@@ -189,8 +189,9 @@ h1 { max-width: 900px; margin: 0 auto 18px; letter-spacing: -0.035em; }
 .demo-section-panel-inner { min-height: 0; overflow: hidden; }
 .demo-section-panel--open > .demo-section-panel-inner { min-height: max(160px, calc(100dvh - 156px)); }
 .demo-section-panel-inner > .real-recording-content, .demo-section-panel-inner > .scene-group-content { padding-top: 20px; padding-bottom: 4px; }
-.real-recording-description { margin-bottom: 20px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #fff; font-size: 0.9rem; line-height: 1.75; }
-.real-recording-description p { margin: 0; }
+.real-recording-description, .internal-group-description { margin: 0 0 20px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: #fff; font-size: 0.9rem; line-height: 1.75; }
+.real-recording-description p, .internal-group-description p { margin: 0; }
+.internal-group-description p + p { margin-top: 12px; }
 .real-recording-description dl { display: grid; gap: 12px; margin: 16px 0; }
 .real-recording-description dt { margin-bottom: 2px; font-weight: 650; }
 .real-recording-description dd { margin: 0; }
@@ -205,7 +206,6 @@ h1 { max-width: 900px; margin: 0 auto 18px; letter-spacing: -0.035em; }
 .real-recordings .audio-track-heading { min-height: 52px; }
 .real-recordings .audio-track-heading h5 { font-size: 0.87rem; }
 .real-position .real-distance { color: #c62828; font-weight: 700; }
-.real-recordings .audio-track-card--core .audio-track-heading h5 { color: #234f7d; font-weight: 800; }
 .real-transcript { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 10px 18px; margin-top: 12px; padding: 14px 18px; border-radius: 10px; background: #edf2f7; }
 .real-transcript > span { color: var(--muted-on-tint); font-size: 0.79rem; font-weight: 600; }
 .real-transcript p { margin: 0; font-size: 0.9rem; line-height: 1.85; overflow-wrap: anywhere; }
@@ -242,15 +242,17 @@ h1 { max-width: 900px; margin: 0 auto 18px; letter-spacing: -0.035em; }
 .position-coordinate { display: inline-block; white-space: nowrap; }
 
 .audio-track-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 18px; }
-.audio-track-card { --card-edge-shadow: 0 0 0 0 transparent; --card-shadow-color: rgba(21, 37, 54, 0.06); --card-focus-shadow-color: rgba(21, 37, 54, 0.12); min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--card-edge-shadow), 0 3px 12px var(--card-shadow-color); transition: transform 180ms ease, box-shadow 180ms ease; }
-.real-speaker-grid > .audio-track-card:last-child, .audio-track-grid > .audio-track-card:last-child { --card-edge-shadow: inset 0 0 0 1px var(--accent); --card-shadow-color: rgba(66, 110, 154, 0.09); --card-focus-shadow-color: rgba(66, 110, 154, 0.14); border-color: var(--accent); }
+.audio-track-card { --card-edge-shadow: 0 0 0 0 transparent; --card-shadow-color: rgba(21, 37, 54, 0.06); --card-focus-shadow-color: rgba(21, 37, 54, 0.12); min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--card-edge-shadow), 0 3px 12px var(--card-shadow-color); transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }
+.real-speaker-grid > .audio-track-card:last-child, .audio-track-grid > .audio-track-card:last-child { border-width: 2px; border-color: #c6d7e8; background: #fafcfe; }
 .audio-track-card:focus-within { box-shadow: var(--card-edge-shadow), 0 7px 18px var(--card-focus-shadow-color); }
+.real-speaker-grid > .audio-track-card:last-child:focus-within, .audio-track-grid > .audio-track-card:last-child:focus-within { border-color: #9eb8d1; }
 @media (hover: hover) and (pointer: fine) {
   .audio-track-card:hover { transform: translateY(-3px); box-shadow: var(--card-edge-shadow), 0 8px 20px var(--card-focus-shadow-color); }
+  .real-speaker-grid > .audio-track-card:last-child:hover, .audio-track-grid > .audio-track-card:last-child:hover { border-color: #9eb8d1; }
 }
 .audio-track-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 40px; }
 .audio-track-heading h5 { margin: 0 0 12px; font-size: 0.91rem; font-weight: 600; line-height: 1.4; }
-.audio-track-card--core .audio-track-heading h5 { color: var(--core); }
+.audio-track-card--core .audio-track-heading h5 { color: var(--core); font-weight: 700; }
 .asset-error { margin: 0 0 12px; padding: 10px; border: 1px solid #ebc7c4; border-radius: 7px; font-size: 0.8rem; }
 
 .spectrogram { display: grid; grid-template-columns: 11px 9px minmax(0, 1fr) 22px; column-gap: 2px; row-gap: 4px; }
@@ -284,7 +286,6 @@ h1 { max-width: 900px; margin: 0 auto 18px; letter-spacing: -0.035em; }
 .internal-view-heading { margin: 2px 0 22px; }
 .internal-view-heading h4 { margin: 0 0 8px; font-size: 1.15rem; font-weight: 600; }
 .internal-view-heading p { margin: 0; color: var(--muted-on-tint); font-size: 0.83rem; line-height: 1.65; }
-.internal-group-description { max-width: 960px; margin: 16px auto 0; color: var(--muted-on-tint); font-size: 0.9rem; line-height: 1.75; }
 .internal-plot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .internal-plot-card { min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
 .internal-plot-card h6 { margin: 0 0 14px; font-size: 0.91rem; font-weight: 600; line-height: 1.4; }
@@ -353,7 +354,7 @@ h1 { max-width: 900px; margin: 0 auto 18px; letter-spacing: -0.035em; }
   .scene-group + .scene-group { margin-top: 12px; }
   .demo-section-toggle { min-height: 56px; padding: 14px 16px; }
   .demo-section-panel--open > .demo-section-panel-inner { min-height: max(160px, calc(100dvh - 176px)); }
-  .real-recording-description { padding: 16px; font-size: 0.87rem; }
+  .real-recording-description, .internal-group-description { padding: 16px; font-size: 0.87rem; }
   .acoustic-grid { gap: 10px; padding: 12px 14px; }
   .acoustic-grid > div { flex-wrap: wrap; gap: 3px 10px; }
   .acoustic-grid dt { flex-basis: auto; font-size: 0.8125rem; }

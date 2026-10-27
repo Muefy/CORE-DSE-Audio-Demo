@@ -125,13 +125,13 @@ export default function RealRecordings({ recording, error, onRetry, renderTrack 
   return (
     <div className="real-recording-content">
       <div className="real-recording-description">
-        <p>This challenging recording features three simultaneous speakers in a large classroom. Two speakers are located nearly 5 m from the array. All models were trained on the simulated datasets described in the paper, without fine-tuning on real recordings, to assess their generalization to real-world acoustic conditions.</p>
+        <p>This challenging real-world recording features <strong>three simultaneous speakers in a large classroom</strong>, two of whom are located approximately 5 m from the microphone array. <strong>All models were trained on the simulated datasets</strong> described in the paper, without fine-tuning on real recordings, to evaluate their generalization to real-world acoustic conditions.</p>
         <dl>
-          <div><dt>Unprocessed</dt><dd>The recording uses the same microphone array configuration as the simulations in the paper. The reference channel (channel 0) is presented.</dd></div>
-          <div><dt>Close-talking Speech</dt><dd>Each speaker was recorded with a close-talking microphone, and the recordings were enhanced using TF-GridNet.</dd></div>
-          <div><dt>Far-field Reference (50 ms)</dt><dd>The close-talking speech is projected to the far-field reference microphone (channel 0) using a finite impulse response (FIR) filter truncated to its first 50 ms. The resulting signal is the target that the models aim to recover.</dd></div>
+          <div><dt>Unprocessed</dt><dd>The recording uses the same microphone array configuration as that used in the simulations described in the paper. The signal from the reference microphone (channel 0) is presented.</dd></div>
+          <div><dt>Close-talking Speech</dt><dd>Each speaker was recorded using a close-talking microphone, and the recordings were enhanced using TF-GridNet.</dd></div>
+          <div><dt>Far-field Reference (50 ms)</dt><dd>The close-talking speech is projected onto the far-field reference microphone (channel 0) using an FIR filter truncated to 50 ms. <strong>The resulting signal serves as the target for the models to recover.</strong></dd></div>
         </dl>
-        <p className="real-recording-status">Data collection is ongoing. Further details will be presented in our future work.</p>
+        <p className="real-recording-status">Data collection is ongoing, and further details will be presented in our future work.</p>
       </div>
       {error ? (
         <div className="scene-message scene-message--error" role="alert"><p>{error}</p><button type="button" className="metric-toggle" onClick={onRetry}>Retry recording</button></div>

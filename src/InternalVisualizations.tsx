@@ -255,14 +255,18 @@ export default function InternalVisualizations({ sceneId, sampleId }: { sceneId:
 
   const plots: PlotView[] = [
     ...[0, 1, 2, 3].map((head) => ({ title: `TF-GCA Map Head-${head + 1}`, filename: metadata.plots.find((plot) => plot.branch === "spatial" && plot.head_index === head)!.filename })),
-    ...(["probe", "core"] as const).map((source): PlotView => ({ title: source === "probe" ? "CE-Probe magnitude mask" : "CORE magnitude mask", filename: metadata.plots.find((plot) => plot.kind === "complex_mask_magnitude" && plot.source === source)!.filename })),
-    ...(["clean", "enhanced"] as const).map((kind): PlotView => ({ title: kind === "clean" ? "Clean spectrogram" : "Enhanced spectrogram", filename: metadata.spectrograms[kind] })),
+    ...(["probe", "core"] as const).map((source): PlotView => ({ title: source === "probe" ? "CE-only output mask" : "CORE output mask", filename: metadata.plots.find((plot) => plot.kind === "complex_mask_magnitude" && plot.source === source)!.filename })),
+    ...(["clean", "enhanced"] as const).map((kind): PlotView => ({ title: kind === "clean" ? "Clean speech" : "CORE output speech", filename: metadata.spectrograms[kind] })),
   ];
 
   return (
     <section className="internal-view" aria-labelledby={`${sceneId}-internals-title`}>
       <header className="internal-view-heading"><h4 id={`${sceneId}-internals-title`}>Visualization of the CORE Extraction Process</h4></header>
       <div className="internal-group">
+        <div className="internal-group-description">
+          <p><strong>TF-GCA Maps</strong><br />The four maps illustrate head-specific matching between the target direction and local spatial cues. Each head learns a complementary DOA–TF matching pattern in a different feature subspace. <strong>Brighter regions indicate stronger gating responses.</strong></p>
+          <p><strong>Output Masks</strong><br />The <strong>CE-only output mask</strong> visualizes the coarse target representation extracted by the Coarse Extractor (CE), while the <strong>CORE output mask</strong> shows the final target estimate after refinement by the Fine Enhancer (FE).</p>
+        </div>
         <div className="internal-plot-grid">
           {plots.map((plot) => (
             <figure className="internal-plot-card" key={plot.filename}>
@@ -271,7 +275,6 @@ export default function InternalVisualizations({ sceneId, sampleId }: { sceneId:
             </figure>
           ))}
         </div>
-        <p className="internal-group-description">The four TF-GCA maps show how the target direction matches local spatial cues, with brighter regions indicating stronger gating. The CE-Probe and CORE magnitude masks visualize the coarse target representation and the final estimate after refinement, respectively. The clean and enhanced spectrograms provide a direct comparison between the reference speech and the extracted output.</p>
       </div>
       {selection && <PlotDialog selection={selection} baseUrl={baseUrl} onClose={() => setSelection(null)} />}
     </section>

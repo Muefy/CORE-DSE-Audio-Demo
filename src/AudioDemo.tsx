@@ -1,6 +1,7 @@
 // 实录与仿真分区试听：实录使用十五秒轴，仿真使用十秒轴，图片独立加载与重试。
 // 三个区域共享原生播放器、独立进度、互斥播放和分阶段媒体预取。
 // 实录增强卡仅展示 P808_MOS；仿真保留原指标和 Easy 内部分析模式。
+// Hard 对比 SpatialNet-Concat 与 SpatialNet-CORE，分别展示不含 CE 与含 CE 的输出。
 // 三个区域默认折叠且互斥展开，首开才加载；收起保留状态，锚点入口自动展开目标。
 // 展开后等待布局稳定再将区域标题对齐导航栏下方，用户主动滚动时停止自动定位。
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -216,9 +217,9 @@ function loadMetrics(scene: Scene): Promise<Record<string, MetricRow>> {
   return request;
 }
 
-/** 只列出页面展示的试听资源，排除 ID 5、Hard SC 与内部分析图。 */
+/** 只列出页面展示的试听资源，排除 Easy ID 5 与内部分析图。 */
 function sceneMedia(scene: Scene): { images: string[]; audio: string[] } {
-  const ids = scene.split === "Easy" ? ["ID3", "ID4", "ID8", "ID9"] : ["TF", "SP"];
+  const ids = scene.split === "Easy" ? ["ID3", "ID4", "ID8", "ID9"] : ["CONCAT", "SP"];
   const entries = ids.flatMap((id) => scene.experiments.filter((experiment) => experiment.id === id));
   const images = [scene.mixtureSpectrogram, scene.target.cleanSpectrogram, ...entries.map((entry) => entry.spectrogram)]
     .map((path) => optimizedImageUrl(sceneAssetUrl(scene.id as SceneId, path)));
@@ -255,8 +256,8 @@ function buildTracks(scene: Scene, metrics: Record<string, MetricRow>): Track[] 
         { id: "ID9", label: "JNF-CORE (ID 9)" },
       ]
     : [
-        { id: "TF", label: "TF-GridNet-CORE" },
-        { id: "SP", label: "SpatialNet-CORE" },
+        { id: "CONCAT", label: "SpatialNet-Concat (without CE)" },
+        { id: "SP", label: "SpatialNet-CORE (with CE)" },
       ];
 
   for (const item of requested) {
