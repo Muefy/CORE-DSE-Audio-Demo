@@ -1,45 +1,45 @@
 {
   "id": "hard-03",
   "split": "Hard",
-  "sampleId": "0354",
+  "sampleId": "0245",
   "mixtureSpeakerCount": 5,
-  "mixtureAudio": "noisy/0354_mic0.wav",
-  "mixtureSpectrogram": "noisy/0354_mic0_spectrogram.webp",
+  "mixtureAudio": "noisy/0245_mic0.wav",
+  "mixtureSpectrogram": "noisy/0245_mic0_spectrogram.webp",
   "target": {
-    "azimuthDeg": -163.9646,
-    "elevationDeg": -20.5218,
-    "distanceM": 0.6327,
-    "cleanAudio": "clean/0354.wav",
-    "cleanSpectrogram": "clean/0354_spectrogram.webp"
+    "azimuthDeg": 30.7777,
+    "elevationDeg": -80.9839,
+    "distanceM": 0.7944,
+    "cleanAudio": "clean/0245.wav",
+    "cleanSpectrogram": "clean/0245_spectrogram.webp"
   },
   "acousticConditions": {
     "noise": {
-      "azimuthDeg": 132.9349,
-      "elevationDeg": -21.2559,
-      "distanceM": 0.6995
+      "azimuthDeg": 38.6465,
+      "elevationDeg": 39.2773,
+      "distanceM": 0.539
     },
     "room": {
       "shape": "rect",
       "dimensionsM": {
-        "x": 7.5842,
-        "y": 7.3011,
-        "z": 3.3245
+        "x": 4.3124,
+        "y": 3.0419,
+        "z": 3.3396
       }
     }
   },
   "enhancedMetricsFile": "enhanced/evaluation_metrics.csv",
   "experiments": [
     {
-      "id": "CONCAT",
-      "label": "SpatialNet-Concat (without CE)",
-      "audio": "enhanced/0354_enhanced_CONCAT.wav",
-      "spectrogram": "enhanced/0354_enhanced_CONCAT_spectrogram.webp"
+      "id": "TF",
+      "label": "TF-GridNet-CORE",
+      "audio": "enhanced/0245_enhanced_TF.wav",
+      "spectrogram": "enhanced/0245_enhanced_TF_spectrogram.webp"
     },
     {
       "id": "SP",
-      "label": "SpatialNet-CORE (with CE)",
-      "audio": "enhanced/0354_enhanced_SP.wav",
-      "spectrogram": "enhanced/0354_enhanced_SP_spectrogram.webp"
+      "label": "SpatialNet-CORE",
+      "audio": "enhanced/0245_enhanced_SP.wav",
+      "spectrogram": "enhanced/0245_enhanced_SP_spectrogram.webp"
     }
   ]
 }
