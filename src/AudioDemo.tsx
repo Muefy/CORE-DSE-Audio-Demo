@@ -1,19 +1,21 @@
-// 实录与仿真分区试听：实录使用十五秒轴，仿真使用十秒轴，图片独立加载与重试。
-// 三个区域共享原生播放器、独立进度、互斥播放和分阶段媒体预取。
+// 试听按 Easy、Hard、可选实录排列：实录关闭时不挂载区域或加载媒体，素材保留。
+// 已启用区域共享原生播放器、独立进度、互斥播放和分阶段媒体预取。
 // 实录增强卡仅展示 P808_MOS；仿真保留原指标和 Easy 内部分析模式。
 // Hard 对比 SpatialNet-Concat 与 SpatialNet-CORE，分别展示不含 CE 与含 CE 的输出。
-// 三个区域默认折叠且互斥展开，首开才加载；收起保留状态，锚点入口自动展开目标。
+// 已启用区域默认折叠且互斥展开，首开才加载；收起保留状态，锚点入口自动展开目标。
 // 展开后等待布局稳定再将区域标题对齐导航栏下方，用户主动滚动时停止自动定位。
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import InternalVisualizations from "./InternalVisualizations";
 import RealRecordings, { loadRealRecording, realRecordingMedia, type RealRecording } from "./RealRecordings";
 import { optimizedImageUrl } from "./imageAssets";
 import { mediaCache } from "./mediaCache";
+import { realRecordingsEnabled } from "./demoConfig";
 
 type SceneViewMode = "audio" | "internals";
-const demoSectionIds = ["real-recordings", "easy-samples", "hard-samples"] as const;
-type DemoSectionId = (typeof demoSectionIds)[number];
-const closedSections: Record<DemoSectionId, boolean> = { "real-recordings": false, "easy-samples": false, "hard-samples": false };
+const allDemoSectionIds = ["easy-samples", "hard-samples", "real-recordings"] as const;
+type DemoSectionId = (typeof allDemoSectionIds)[number];
+const demoSectionIds = allDemoSectionIds.filter((id) => realRecordingsEnabled || id !== "real-recordings");
+const closedSections: Record<DemoSectionId, boolean> = { "easy-samples": false, "hard-samples": false, "real-recordings": false };
 
 const sceneOptions = [
   { id: "easy-01", label: "Easy 01" },
@@ -748,7 +750,7 @@ function SceneGroup({ split, scenes, sceneErrors, savedPosition, rememberPositio
   );
 }
 
-/** 独立加载实录和仿真清单，在三个区域之间共享播放与媒体调度。 */
+/** 独立加载启用区域的清单，并共享播放状态与媒体调度。 */
 export default function AudioDemo() {
   const [openSections, setOpenSections] = useState(closedSections);
   const [visitedSections, setVisitedSections] = useState(closedSections);
@@ -861,7 +863,7 @@ export default function AudioDemo() {
 
   useEffect(() => {
     let live = true;
-    if (visitedSections["real-recordings"]) {
+    if (realRecordingsEnabled && visitedSections["real-recordings"]) {
       loadRealRecording()
         .then((value) => { if (live) { setRecording(value); setRecordingError(undefined); } })
         .catch((error: unknown) => { if (live) setRecordingError(error instanceof Error ? error.message : "Real recording metadata is unavailable."); });
@@ -892,8 +894,8 @@ export default function AudioDemo() {
     const defaults = (["easy-01", "hard-01"] as const).filter((id) => visitedSections[simulationSectionId(id)]);
     const remaining = (["easy-02", "easy-03", "hard-02", "hard-03"] as const).filter((id) => visitedSections[simulationSectionId(id)]);
     const resources = (ids: readonly SceneId[]) => ids.flatMap((id) => scenes[id] ? [sceneMedia(scenes[id]!)] : []);
-    const initial = [...(visitedSections["real-recordings"] && recording ? [realRecordingMedia(recording)] : []), ...resources(defaults)];
-    const recordingSettled = !visitedSections["real-recordings"] || Boolean(recording || recordingError);
+    const initial = [...(realRecordingsEnabled && visitedSections["real-recordings"] && recording ? [realRecordingMedia(recording)] : []), ...resources(defaults)];
+    const recordingSettled = !realRecordingsEnabled || !visitedSections["real-recordings"] || Boolean(recording || recordingError);
     const defaultsSettled = recordingSettled && defaults.every((id) => scenes[id] || sceneErrors[id]);
     if (!initial.length && !defaultsSettled) return;
     const allSettled = recordingSettled && sceneOptions.filter((option) => visitedSections[simulationSectionId(option.id)]).every((option) => scenes[option.id] || sceneErrors[option.id]);
@@ -953,17 +955,17 @@ export default function AudioDemo() {
 
   return (
     <div className="audio-demo">
-      <CollapsibleDemoSection id="real-recordings" title="Real Recordings" className="real-recordings" open={openSections["real-recordings"]} onToggle={() => toggleSection("real-recordings")}>
-        {visitedSections["real-recordings"] && <RealRecordings recording={recording} error={recordingError} onRetry={reloadRecording} renderTrack={(track) => (
-          <TrackCard track={track} showNonIntrusive={false} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} />
-        )} />}
-      </CollapsibleDemoSection>
       <CollapsibleDemoSection id="easy-samples" title="Simulated (Easy)" open={openSections["easy-samples"]} onToggle={() => toggleSection("easy-samples")}>
         {visitedSections["easy-samples"] && <SceneGroup split="Easy" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />}
       </CollapsibleDemoSection>
       <CollapsibleDemoSection id="hard-samples" title="Simulated (Hard)" open={openSections["hard-samples"]} onToggle={() => toggleSection("hard-samples")}>
         {visitedSections["hard-samples"] && <SceneGroup split="Hard" scenes={scenes} sceneErrors={sceneErrors} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} onSceneChange={stopActiveAudio} onReloadScene={reloadScene} />}
       </CollapsibleDemoSection>
+      {realRecordingsEnabled && <CollapsibleDemoSection id="real-recordings" title="Real Recordings" className="real-recordings" open={openSections["real-recordings"]} onToggle={() => toggleSection("real-recordings")}>
+        {visitedSections["real-recordings"] && <RealRecordings recording={recording} error={recordingError} onRetry={reloadRecording} renderTrack={(track) => (
+          <TrackCard track={track} showNonIntrusive={false} savedPosition={savedPosition} rememberPosition={rememberPosition} onPlay={handlePlay} onPause={handlePause} />
+        )} />}
+      </CollapsibleDemoSection>}
     </div>
   );
 }

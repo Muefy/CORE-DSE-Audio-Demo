@@ -1,7 +1,8 @@
-// 使用居中论文首屏与深蓝标题，三个试听入口分别定位实录、Easy 和 Hard。
+// 使用居中论文首屏与深蓝标题，按 Easy、Hard、可选实录顺序提供试听入口。
 // 顶栏词组留白，方法图采用无损网页图片映射。
 import { useEffect, useRef, useState } from "react";
 import AudioDemo from "./AudioDemo";
+import { realRecordingsEnabled } from "./demoConfig";
 import { optimizedImageUrl } from "./imageAssets";
 
 type MethodPanel = "coarse-extractor" | "tfgca-lgm" | null;
@@ -122,10 +123,10 @@ export default function App() {
             </div>
             <div className="hero-audio-links" aria-label="Listen to audio samples">
               {[
-                { href: "#real-recordings", label: "Real Recordings" },
                 { href: "#easy-samples", label: "Simulated (Easy)" },
                 { href: "#hard-samples", label: "Simulated (Hard)" },
-              ].map((link) => (
+                { href: "#real-recordings", label: "Real Recordings" },
+              ].filter((link) => realRecordingsEnabled || link.href !== "#real-recordings").map((link) => (
                 <a key={link.href} className="hero-audio-link" href={link.href}>
                   <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6 3.5a.8.8 0 0 1 1.2-.7l9 6.5a.85.85 0 0 1 0 1.4l-9 6.5a.8.8 0 0 1-1.2-.7z" /></svg>
                   {link.label}
